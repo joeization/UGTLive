@@ -11,7 +11,7 @@ namespace UGTLive
     /// </summary>
     public class ClaudeCliTranslationService : CliTranslationServiceBase
     {
-        protected override string ProviderName => "Claude CLI";
+        protected override string ProviderName => "Anthropic Sub";
 
         protected override string SetupHint =>
             "Requires Claude Code installed and logged in once (run `claude` and sign in " +

@@ -26,6 +26,11 @@ namespace UGTLive
 {
     public partial class SettingsWindow
     {
+        private static string GetTranslationServiceId(ComboBoxItem item)
+        {
+            return item.Tag?.ToString() ?? item.Content?.ToString() ?? "Gemini";
+        }
+
         // Translation service changed
         private void TranslationServiceComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -50,7 +55,7 @@ namespace UGTLive
                 
                 if (translationServiceComboBox.SelectedItem is ComboBoxItem selectedItem)
                 {
-                    string selectedService = selectedItem.Content.ToString() ?? "Gemini";
+                    string selectedService = GetTranslationServiceId(selectedItem);
                     
                     Console.WriteLine($"SettingsWindow translation service changed to: '{selectedService}'");
                     
@@ -105,7 +110,7 @@ namespace UGTLive
                 
                 if (translationServiceComboBox.SelectedItem is ComboBoxItem selectedItem)
                 {
-                    string selectedService = selectedItem.Content.ToString() ?? "Gemini";
+                    string selectedService = GetTranslationServiceId(selectedItem);
                     string prompt = ConfigManager.Instance.GetServicePrompt(selectedService);
                     
                     // Update the text box
@@ -131,7 +136,7 @@ namespace UGTLive
             {
                 if (translationServiceComboBox.SelectedItem is ComboBoxItem selectedItem)
                 {
-                    string selectedService = selectedItem.Content.ToString() ?? "Gemini";
+                    string selectedService = GetTranslationServiceId(selectedItem);
                     string defaultPrompt = ConfigManager.Instance.GetDefaultPrompt(selectedService);
                     
                     // Set the default prompt in the text box (user can then save it if they want)
@@ -226,7 +231,7 @@ namespace UGTLive
         {
             if (translationServiceComboBox.SelectedItem is ComboBoxItem selectedItem)
             {
-                string selectedService = selectedItem.Content.ToString() ?? "Gemini";
+                string selectedService = GetTranslationServiceId(selectedItem);
                 string prompt = promptTemplateTextBox.Text;
                 
                 if (!string.IsNullOrWhiteSpace(prompt))
@@ -1036,12 +1041,12 @@ namespace UGTLive
                 // Handle both dropdown selection and manually typed values
                 if (geminiModelComboBox.SelectedItem is ComboBoxItem selectedItem)
                 {
-                    model = selectedItem.Content?.ToString() ?? "gemini-2.5-flash";
+                    model = selectedItem.Content?.ToString() ?? "gemini-3.5-flash";
                 }
                 else
                 {
                     // For manually entered text
-                    model = geminiModelComboBox.Text?.Trim() ?? "gemini-2.5-flash";
+                    model = geminiModelComboBox.Text?.Trim() ?? "gemini-3.5-flash";
                 }
                 
                 if (!string.IsNullOrWhiteSpace(model))
@@ -1177,7 +1182,7 @@ namespace UGTLive
                     
                 if (chatGptModelComboBox.SelectedItem is ComboBoxItem selectedItem)
                 {
-                    string model = selectedItem.Tag?.ToString() ?? "gpt-5.4-nano";
+                    string model = selectedItem.Tag?.ToString() ?? "gpt-5.6-luna";
                     
                     // Save to config
                     ConfigManager.Instance.SetChatGptModel(model);
@@ -1265,7 +1270,7 @@ namespace UGTLive
             if (_isInitializing) return;
             if (anthropicModelComboBox.SelectedItem is ComboBoxItem selectedItem)
             {
-                string model = selectedItem.Tag?.ToString() ?? "claude-sonnet-4-6";
+                string model = selectedItem.Tag?.ToString() ?? "claude-sonnet-5";
                 ConfigManager.Instance.SetAnthropicModel(model);
                 TriggerRetranslationIfCurrent("Anthropic");
             }

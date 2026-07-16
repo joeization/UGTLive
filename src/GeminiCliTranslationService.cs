@@ -10,7 +10,7 @@ namespace UGTLive
     /// </summary>
     public class GeminiCliTranslationService : CliTranslationServiceBase
     {
-        protected override string ProviderName => "Gemini CLI";
+        protected override string ProviderName => "Gemini Sub";
 
         protected override string SetupHint =>
             "Requires Gemini CLI installed and logged in once (run `gemini` and sign in " +

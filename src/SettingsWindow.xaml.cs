@@ -653,7 +653,7 @@ namespace UGTLive
             
             foreach (ComboBoxItem item in translationServiceComboBox.Items)
             {
-                if (string.Equals(item.Content.ToString(), currentService, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(GetTranslationServiceId(item), currentService, StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine($"Found matching translation service: '{item.Content}'");
                     translationServiceComboBox.SelectedItem = item;

@@ -90,7 +90,7 @@ namespace UGTLive
                         return null;
                     }
                     ErrorPopupManager.ShowError(
-                        $"The {ProviderName} CLI timed out after 180 seconds.\n\n" +
+                        $"The {ProviderName} command timed out after 180 seconds.\n\n" +
                         "Try a faster model or check that the CLI is logged in.",
                         $"{ProviderName} Timeout");
                     return null;
@@ -106,10 +106,10 @@ namespace UGTLive
 
                 if (exitCode != 0)
                 {
-                    Console.WriteLine($"{ProviderName} CLI exited with code {exitCode}. Stderr: {stderr}");
+                    Console.WriteLine($"{ProviderName} command exited with code {exitCode}. Stderr: {stderr}");
                     string detail = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
                     ErrorPopupManager.ShowError(
-                        $"The {ProviderName} CLI returned an error (exit code {exitCode}).\n\n" +
+                        $"The {ProviderName} command returned an error (exit code {exitCode}).\n\n" +
                         $"{Truncate(detail, 400)}\n\n{SetupHint}",
                         $"{ProviderName} Error");
                     return null;
@@ -122,9 +122,9 @@ namespace UGTLive
                 string translatedText = ExtractText(stdout);
                 if (string.IsNullOrWhiteSpace(translatedText))
                 {
-                    Console.WriteLine($"Failed to extract text from {ProviderName} CLI output");
+                    Console.WriteLine($"Failed to extract text from {ProviderName} command output");
                     ErrorPopupManager.ShowError(
-                        $"The {ProviderName} CLI returned no usable text.\n\n" +
+                        $"The {ProviderName} command returned no usable text.\n\n" +
                         $"Output: {Truncate(stdout, 300)}\n\n{SetupHint}",
                         $"{ProviderName} Error");
                     return null;

@@ -67,7 +67,7 @@ namespace UGTLive
         }
         
         /// <summary>
-        /// Check if the model supports 'none' reasoning effort (not GPT-5.4-pro: medium/high/xhigh only)
+        /// Check if the model supports 'none' reasoning effort (unlike older GPT-5 and Pro variants)
         /// </summary>
         private bool SupportsNoneReasoningEffort(string model)
         {
@@ -80,7 +80,8 @@ namespace UGTLive
             return model.StartsWith("gpt-5.1", StringComparison.OrdinalIgnoreCase) ||
                    model.StartsWith("gpt-5.2", StringComparison.OrdinalIgnoreCase) ||
                    model.StartsWith("gpt-5.4", StringComparison.OrdinalIgnoreCase) ||
-                   model.StartsWith("gpt-5.5", StringComparison.OrdinalIgnoreCase);
+                   model.StartsWith("gpt-5.5", StringComparison.OrdinalIgnoreCase) ||
+                   model.StartsWith("gpt-5.6", StringComparison.OrdinalIgnoreCase);
         }
         
         /// <summary>
@@ -104,7 +105,7 @@ namespace UGTLive
             {
                 // When thinking is disabled:
                 // - GPT-5.4-pro supports only medium / high / xhigh (use medium as minimum)
-                // - GPT-5.1, GPT-5.2, GPT-5.4 (non-pro) support 'none'
+                // - GPT-5.1 and newer non-Pro families support 'none'
                 // - Base GPT-5, Mini, Nano support 'low', 'medium', 'high' (not 'none')
                 if (model.StartsWith("gpt-5.4-pro", StringComparison.OrdinalIgnoreCase) ||
                     model.StartsWith("gpt-5.5-pro", StringComparison.OrdinalIgnoreCase))

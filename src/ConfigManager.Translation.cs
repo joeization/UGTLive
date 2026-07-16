@@ -529,7 +529,7 @@ Here is the input JSON:";
         // Get/Set ChatGPT model
         public string GetChatGptModel()
         {
-            return GetValue(CHATGPT_MODEL, "gpt-5.4-nano"); // Default to GPT-5.4 Nano
+            return GetValue(CHATGPT_MODEL, "gpt-5.6-luna"); // Default to the cost-efficient GPT-5.6 tier
         }
         
         public void SetChatGptModel(string model)
@@ -587,7 +587,7 @@ Here is the input JSON:";
         // Get Gemini model
         public string GetGeminiModel()
         {
-            return GetValue(GEMINI_MODEL, "gemini-2.5-flash"); // Default to Gemini 2.5 Flash
+            return GetValue(GEMINI_MODEL, "gemini-3.5-flash"); // Default to stable Gemini 3.5 Flash
         }
         
         // Set Gemini model
@@ -632,7 +632,7 @@ Here is the input JSON:";
 
         public string GetAnthropicModel()
         {
-            return GetValue(ANTHROPIC_MODEL, "claude-sonnet-4-6");
+            return GetValue(ANTHROPIC_MODEL, "claude-sonnet-5");
         }
 
         public void SetAnthropicModel(string model)
@@ -681,7 +681,7 @@ Here is the input JSON:";
 
         public string GetOpenRouterModel()
         {
-            return GetValue(OPENROUTER_MODEL, "openai/gpt-5.4-mini");
+            return GetValue(OPENROUTER_MODEL, "openai/gpt-5.6-luna");
         }
 
         public void SetOpenRouterModel(string model)
@@ -741,7 +741,7 @@ Here is the input JSON:";
 
         public string GetCodexCliModel()
         {
-            return GetValue(CODEX_CLI_MODEL, "gpt-5.4");
+            return GetValue(CODEX_CLI_MODEL, "gpt-5.6");
         }
 
         public void SetCodexCliModel(string model)
@@ -793,7 +793,7 @@ Here is the input JSON:";
 
         public string GetGeminiCliModel()
         {
-            return GetValue(GEMINI_CLI_MODEL, "gemini-2.5-flash");
+            return GetValue(GEMINI_CLI_MODEL, "gemini-3.5-flash");
         }
 
         public void SetGeminiCliModel(string model)

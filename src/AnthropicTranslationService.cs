@@ -11,13 +11,97 @@ namespace UGTLive
 {
     /// <summary>
     /// Translation via Anthropic's native Messages API (https://api.anthropic.com/v1/messages).
-    /// Uses x-api-key auth and honors the shared "Enable Thinking Mode" checkbox via the
-    /// extended-thinking request block.
+    /// Uses x-api-key auth and maps the shared "Enable Thinking Mode" checkbox to the
+    /// selected model's manual or adaptive-thinking request format.
     /// </summary>
     public class AnthropicTranslationService : ITranslationService
     {
         private static readonly HttpClient _httpClient = new HttpClient();
         private const string ApiEndpoint = "https://api.anthropic.com/v1/messages";
+
+        private static bool IsFableOrMythos5(string model)
+        {
+            return model.StartsWith("claude-fable-5", StringComparison.OrdinalIgnoreCase) ||
+                   model.StartsWith("claude-mythos-5", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSonnet5(string model)
+        {
+            return model.StartsWith("claude-sonnet-5", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool UsesOptInAdaptiveThinking(string model)
+        {
+            return model.StartsWith("claude-opus-4-6", StringComparison.OrdinalIgnoreCase) ||
+                   model.StartsWith("claude-opus-4-7", StringComparison.OrdinalIgnoreCase) ||
+                   model.StartsWith("claude-opus-4-8", StringComparison.OrdinalIgnoreCase) ||
+                   model.StartsWith("claude-sonnet-4-6", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void ConfigureThinking(
+            Dictionary<string, object> requestBody,
+            string model,
+            bool thinkingEnabled,
+            int maxTokens)
+        {
+            // Fable/Mythos 5 always use adaptive thinking and reject manual or disabled modes.
+            // Use effort to make the shared checkbox select the high-quality or low-latency path.
+            if (IsFableOrMythos5(model))
+            {
+                requestBody["output_config"] = new Dictionary<string, string>
+                {
+                    { "effort", thinkingEnabled ? "high" : "low" }
+                };
+                return;
+            }
+
+            // Sonnet 5 uses adaptive thinking by default and explicitly supports disabling it.
+            if (IsSonnet5(model))
+            {
+                if (!thinkingEnabled)
+                {
+                    requestBody["thinking"] = new Dictionary<string, string>
+                    {
+                        { "type", "disabled" }
+                    };
+                }
+                return;
+            }
+
+            // Newer Opus models and Sonnet 4.6 reject or deprecate fixed token budgets.
+            if (UsesOptInAdaptiveThinking(model))
+            {
+                if (thinkingEnabled)
+                {
+                    requestBody["thinking"] = new Dictionary<string, string>
+                    {
+                        { "type", "adaptive" }
+                    };
+                    requestBody["output_config"] = new Dictionary<string, string>
+                    {
+                        { "effort", "high" }
+                    };
+                }
+                return;
+            }
+
+            if (!thinkingEnabled)
+            {
+                return;
+            }
+
+            const int budgetTokens = 4096;
+            // Older models with manual thinking require max_tokens > budget_tokens.
+            if (maxTokens <= budgetTokens)
+            {
+                requestBody["max_tokens"] = budgetTokens + 4096;
+            }
+            requestBody["thinking"] = new Dictionary<string, object>
+            {
+                { "type", "enabled" },
+                { "budget_tokens", budgetTokens }
+            };
+        }
 
         public async Task<string?> TranslateAsync(string jsonData, string prompt, CancellationToken cancellationToken = default)
         {
@@ -59,20 +143,7 @@ namespace UGTLive
                     { "messages", messages }
                 };
 
-                if (thinkingEnabled)
-                {
-                    const int budgetTokens = 4096;
-                    // Anthropic requires max_tokens > thinking.budget_tokens
-                    if (maxTokens <= budgetTokens)
-                    {
-                        requestBody["max_tokens"] = budgetTokens + 4096;
-                    }
-                    requestBody["thinking"] = new Dictionary<string, object>
-                    {
-                        { "type", "enabled" },
-                        { "budget_tokens", budgetTokens }
-                    };
-                }
+                ConfigureThinking(requestBody, model, thinkingEnabled, maxTokens);
 
                 string requestJson = JsonSerializer.Serialize(requestBody);
 
@@ -102,6 +173,15 @@ namespace UGTLive
                 {
                     Console.WriteLine($"Anthropic response complete: {stopwatch.Elapsed.TotalSeconds:F1}s, {responseContent.Length} chars");
                     LogManager.Instance.LogLlmReply(responseContent);
+
+                    if (TryGetRefusalMessage(responseContent, out string refusalMessage))
+                    {
+                        Console.WriteLine($"Anthropic request refused: {refusalMessage}");
+                        ErrorPopupManager.ShowError(
+                            refusalMessage + "\n\nTry Claude Opus or Sonnet for this translation.",
+                            "Anthropic Request Refused");
+                        return null;
+                    }
 
                     string translatedText = ParseResponse(responseContent);
                     if (string.IsNullOrEmpty(translatedText))
@@ -177,6 +257,39 @@ namespace UGTLive
                     $"An unexpected error occurred with Anthropic translation.\n\nError: {ex.Message}",
                     "Anthropic Translation Error");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Claude Fable 5 reports safety refusals as successful HTTP 200 responses.
+        /// </summary>
+        private static bool TryGetRefusalMessage(string responseContent, out string message)
+        {
+            message = "Claude declined this request.";
+
+            try
+            {
+                using JsonDocument doc = JsonDocument.Parse(responseContent);
+                if (!doc.RootElement.TryGetProperty("stop_reason", out JsonElement stopReason) ||
+                    !string.Equals(stopReason.GetString(), "refusal", StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                if (doc.RootElement.TryGetProperty("stop_details", out JsonElement stopDetails) &&
+                    stopDetails.ValueKind == JsonValueKind.Object &&
+                    stopDetails.TryGetProperty("explanation", out JsonElement explanation) &&
+                    !string.IsNullOrWhiteSpace(explanation.GetString()))
+                {
+                    message = explanation.GetString()!;
+                }
+
+                return true;
+            }
+            catch (JsonException ex)
+            {
+                Console.WriteLine($"Error parsing Anthropic stop reason: {ex.Message}");
+                return false;
             }
         }
 

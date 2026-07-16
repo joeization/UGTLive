@@ -326,11 +326,11 @@ namespace UGTLive
             _configValues[MIN_CONTEXT_SIZE] = "8";
             _configValues[GAME_INFO] = "We're playing an unspecified game.";
             _configValues[MIN_TEXT_FRAGMENT_SIZE] = "1";
-            _configValues[CHATGPT_MODEL] = "gpt-5.4-nano";
+            _configValues[CHATGPT_MODEL] = "gpt-5.6-luna";
             _configValues[CHATGPT_API_KEY] = "<your API key here>";
             _configValues[CHATGPT_MAX_COMPLETION_TOKENS] = "32768";
             _configValues[CHATGPT_THINKING_ENABLED] = "false";
-            _configValues[GEMINI_MODEL] = "gemini-2.5-flash";
+            _configValues[GEMINI_MODEL] = "gemini-3.5-flash";
             _configValues[GEMINI_THINKING_ENABLED] = "false";
             _configValues[BLOCK_DETECTION_SCALE] = "3.00";
             _configValues[BLOCK_DETECTION_SETTLE_TIME] = "0.15";

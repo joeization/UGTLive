@@ -16,7 +16,7 @@ namespace UGTLive
     /// validated end-to-end (request -> response -> envelope parsing) without the GUI.
     ///
     /// Usage:
-    ///   ugtlive.exe --test-translate --provider GeminiCli [--model gemini-2.5-flash]
+    ///   ugtlive.exe --test-translate --provider GeminiCli [--model gemini-3.5-flash]
     ///               [--thinking] [--ocr-json path] [--text "some text"]
     ///               [--source ja] [--target en]
     ///

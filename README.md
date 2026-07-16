@@ -125,7 +125,7 @@ UGTLive will automatically check for updates when you start it. If a new version
 * Your RTX Pro 6000 isn't detected?  Uh, my bad.  Let me know, I'll add it
 * AMD GPU support? Sorry not yet.  I don't have one!
 * Can't click on the text overlays on the main window?  Make sure "Passthrough" *is not* checked
-* What's the best settings for translation?  I like gemini-2.5-flash-lite. It's just very fast.
+* What's the best settings for translation?  I like gemini-3.1-flash-lite. It's very fast and inexpensive; gemini-3.5-flash is the stronger general-purpose option.
 
  ## How to run it COMPLETELY LOCALLY and free, even the translations
 

@@ -9,7 +9,7 @@ namespace UGTLive
     /// </summary>
     public class CodexCliTranslationService : CliTranslationServiceBase
     {
-        protected override string ProviderName => "Codex CLI";
+        protected override string ProviderName => "OpenAI Sub";
 
         protected override string SetupHint =>
             "Requires Codex CLI installed and logged in once (run `codex login` and sign in " +

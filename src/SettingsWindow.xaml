@@ -590,9 +590,9 @@
                                     <ComboBoxItem Content="Google Translate"/>
                                     <ComboBoxItem Content="Anthropic"/>
                                     <ComboBoxItem Content="OpenRouter"/>
-                                    <ComboBoxItem Content="ClaudeCli"/>
-                                    <ComboBoxItem Content="CodexCli"/>
-                                    <ComboBoxItem Content="GeminiCli"/>
+                                    <ComboBoxItem Content="Anthropic Sub" Tag="ClaudeCli"/>
+                                    <ComboBoxItem Content="OpenAI Sub" Tag="CodexCli"/>
+                                    <ComboBoxItem Content="Gemini Sub" Tag="GeminiCli"/>
                                 </ComboBox>
                                 
                                 <!-- Gemini API Key - Only visible when Gemini is selected -->
@@ -624,6 +624,7 @@
                                             SelectionChanged="GeminiModelComboBox_SelectionChanged"
                                             LostFocus="GeminiModelComboBox_LostFocus"
                                             IsEditable="True">
+                                        <ComboBoxItem Content="gemini-3.5-flash"/>
                                         <ComboBoxItem Content="gemini-3.1-pro-preview"/>
                                         <ComboBoxItem Content="gemini-3-flash-preview"/>
                                         <ComboBoxItem Content="gemini-3.1-flash-lite"/>
@@ -721,6 +722,9 @@
                                     </Grid.ColumnDefinitions>
                                     <ComboBox x:Name="chatGptModelComboBox" Grid.Column="0"
                                             SelectionChanged="ChatGptModelComboBox_SelectionChanged">
+                                        <ComboBoxItem Content="GPT-5.6 Sol (Latest)" Tag="gpt-5.6"/>
+                                        <ComboBoxItem Content="GPT-5.6 Terra" Tag="gpt-5.6-terra"/>
+                                        <ComboBoxItem Content="GPT-5.6 Luna" Tag="gpt-5.6-luna"/>
                                         <ComboBoxItem Content="GPT-5.5" Tag="gpt-5.5"/>
                                         <ComboBoxItem Content="GPT-5.5 Pro (Advanced)" Tag="gpt-5.5-pro"/>
                                         <ComboBoxItem Content="GPT-5.4" Tag="gpt-5.4"/>
@@ -858,6 +862,9 @@
                                     </Grid.ColumnDefinitions>
                                     <ComboBox x:Name="anthropicModelComboBox" Grid.Column="0"
                                             SelectionChanged="AnthropicModelComboBox_SelectionChanged">
+                                        <ComboBoxItem Content="Claude Fable 5 (Most Capable)" Tag="claude-fable-5"/>
+                                        <ComboBoxItem Content="Claude Opus 4.8" Tag="claude-opus-4-8"/>
+                                        <ComboBoxItem Content="Claude Sonnet 5" Tag="claude-sonnet-5"/>
                                         <ComboBoxItem Content="Claude Opus 4.7" Tag="claude-opus-4-7"/>
                                         <ComboBoxItem Content="Claude Sonnet 4.6" Tag="claude-sonnet-4-6"/>
                                         <ComboBoxItem Content="Claude Haiku 4.5" Tag="claude-haiku-4-5"/>
@@ -906,12 +913,19 @@
                                             IsEditable="True"
                                             SelectionChanged="OpenRouterModelComboBox_SelectionChanged"
                                             LostFocus="OpenRouterModelComboBox_LostFocus">
+                                        <ComboBoxItem Content="openai/gpt-5.6-sol"/>
+                                        <ComboBoxItem Content="openai/gpt-5.6-terra"/>
+                                        <ComboBoxItem Content="openai/gpt-5.6-luna"/>
                                         <ComboBoxItem Content="openai/gpt-5.4-mini"/>
                                         <ComboBoxItem Content="openai/gpt-5.5"/>
                                         <ComboBoxItem Content="openai/gpt-5.4"/>
+                                        <ComboBoxItem Content="anthropic/claude-fable-5"/>
+                                        <ComboBoxItem Content="anthropic/claude-opus-4.8"/>
+                                        <ComboBoxItem Content="anthropic/claude-sonnet-5"/>
                                         <ComboBoxItem Content="anthropic/claude-opus-4.7"/>
                                         <ComboBoxItem Content="anthropic/claude-sonnet-4.6"/>
                                         <ComboBoxItem Content="anthropic/claude-haiku-4.5"/>
+                                        <ComboBoxItem Content="google/gemini-3.5-flash"/>
                                         <ComboBoxItem Content="google/gemini-3.1-pro-preview"/>
                                         <ComboBoxItem Content="google/gemini-2.5-flash"/>
                                         <ComboBoxItem Content="google/gemini-3.1-flash-lite"/>
@@ -926,7 +940,7 @@
                                 </Grid>
 
                                 <!-- Claude CLI Command - Only visible when ClaudeCli is selected -->
-                                <TextBlock x:Name="claudeCliCommandLabel" Text="Claude CLI Command:" Grid.Row="1" Grid.Column="0"
+                                <TextBlock x:Name="claudeCliCommandLabel" Text="Anthropic Sub Command:" Grid.Row="1" Grid.Column="0"
                                           VerticalAlignment="Top" Margin="0,8,10,0" Visibility="Collapsed"/>
                                 <Grid Grid.Row="1" Grid.Column="1" Visibility="Collapsed" x:Name="claudeCliCommandGrid" Margin="0,5,0,0">
                                     <Grid.RowDefinitions>
@@ -945,12 +959,15 @@
                                 </Grid>
 
                                 <!-- Claude CLI Model - Only visible when ClaudeCli is selected -->
-                                <TextBlock x:Name="claudeCliModelLabel" Text="Claude Model:" Grid.Row="3" Grid.Column="0"
+                                <TextBlock x:Name="claudeCliModelLabel" Text="Anthropic Sub Model:" Grid.Row="3" Grid.Column="0"
                                           VerticalAlignment="Center" Margin="0,5,10,0" Visibility="Collapsed"/>
                                 <Grid Grid.Row="3" Grid.Column="1" Margin="0,5" Visibility="Collapsed" x:Name="claudeCliModelGrid">
                                     <ComboBox x:Name="claudeCliModelComboBox" IsEditable="True"
                                             SelectionChanged="ClaudeCliModelComboBox_SelectionChanged"
                                             LostFocus="ClaudeCliModelComboBox_LostFocus">
+                                        <ComboBoxItem Content="claude-fable-5"/>
+                                        <ComboBoxItem Content="claude-opus-4-8"/>
+                                        <ComboBoxItem Content="claude-sonnet-5"/>
                                         <ComboBoxItem Content="opus"/>
                                         <ComboBoxItem Content="sonnet"/>
                                         <ComboBoxItem Content="haiku"/>
@@ -958,7 +975,7 @@
                                 </Grid>
 
                                 <!-- Codex CLI Command - Only visible when CodexCli is selected -->
-                                <TextBlock x:Name="codexCliCommandLabel" Text="Codex CLI Command:" Grid.Row="1" Grid.Column="0"
+                                <TextBlock x:Name="codexCliCommandLabel" Text="OpenAI Sub Command:" Grid.Row="1" Grid.Column="0"
                                           VerticalAlignment="Top" Margin="0,8,10,0" Visibility="Collapsed"/>
                                 <Grid Grid.Row="1" Grid.Column="1" Visibility="Collapsed" x:Name="codexCliCommandGrid" Margin="0,5,0,0">
                                     <Grid.RowDefinitions>
@@ -975,12 +992,15 @@
                                 </Grid>
 
                                 <!-- Codex CLI Model - Only visible when CodexCli is selected -->
-                                <TextBlock x:Name="codexCliModelLabel" Text="Codex Model:" Grid.Row="3" Grid.Column="0"
+                                <TextBlock x:Name="codexCliModelLabel" Text="OpenAI Sub Model:" Grid.Row="3" Grid.Column="0"
                                           VerticalAlignment="Center" Margin="0,5,10,0" Visibility="Collapsed"/>
                                 <Grid Grid.Row="3" Grid.Column="1" Margin="0,5" Visibility="Collapsed" x:Name="codexCliModelGrid">
                                     <ComboBox x:Name="codexCliModelComboBox" IsEditable="True"
                                             SelectionChanged="CodexCliModelComboBox_SelectionChanged"
                                             LostFocus="CodexCliModelComboBox_LostFocus">
+                                        <ComboBoxItem Content="gpt-5.6"/>
+                                        <ComboBoxItem Content="gpt-5.6-terra"/>
+                                        <ComboBoxItem Content="gpt-5.6-luna"/>
                                         <ComboBoxItem Content="gpt-5.5"/>
                                         <ComboBoxItem Content="gpt-5.4"/>
                                         <ComboBoxItem Content="gpt-5.4-mini"/>
@@ -989,7 +1009,7 @@
                                 </Grid>
 
                                 <!-- Gemini CLI Command - Only visible when GeminiCli is selected -->
-                                <TextBlock x:Name="geminiCliCommandLabel" Text="Gemini CLI Command:" Grid.Row="1" Grid.Column="0"
+                                <TextBlock x:Name="geminiCliCommandLabel" Text="Gemini Sub Command:" Grid.Row="1" Grid.Column="0"
                                           VerticalAlignment="Top" Margin="0,8,10,0" Visibility="Collapsed"/>
                                 <Grid Grid.Row="1" Grid.Column="1" Visibility="Collapsed" x:Name="geminiCliCommandGrid" Margin="0,5,0,0">
                                     <Grid.RowDefinitions>
@@ -1006,12 +1026,13 @@
                                 </Grid>
 
                                 <!-- Gemini CLI Model - Only visible when GeminiCli is selected -->
-                                <TextBlock x:Name="geminiCliModelLabel" Text="Gemini Model:" Grid.Row="3" Grid.Column="0"
+                                <TextBlock x:Name="geminiCliModelLabel" Text="Gemini Sub Model:" Grid.Row="3" Grid.Column="0"
                                           VerticalAlignment="Center" Margin="0,5,10,0" Visibility="Collapsed"/>
                                 <Grid Grid.Row="3" Grid.Column="1" Margin="0,5" Visibility="Collapsed" x:Name="geminiCliModelGrid">
                                     <ComboBox x:Name="geminiCliModelComboBox" IsEditable="True"
                                             SelectionChanged="GeminiCliModelComboBox_SelectionChanged"
                                             LostFocus="GeminiCliModelComboBox_LostFocus">
+                                        <ComboBoxItem Content="gemini-3.5-flash"/>
                                         <ComboBoxItem Content="gemini-3.1-pro-preview"/>
                                         <ComboBoxItem Content="gemini-2.5-pro"/>
                                         <ComboBoxItem Content="gemini-2.5-flash"/>
