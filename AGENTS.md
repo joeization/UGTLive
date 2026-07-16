@@ -27,7 +27,7 @@ Always add automation/test harnesses to test options/buttons/features as needed.
 ## Cloud LLM Model Maintenance
 
 - Cloud and CLI model picker presets live in `src/SettingsWindow.xaml`; their fallback/default values live in `src/ConfigManager.cs`, `src/ConfigManager.Translation.cs`, and `src/SettingsWindow.TranslationSettings.cs`.
-- Subscription-backed CLI providers display as `Anthropic Sub`, `OpenAI Sub`, and `Gemini Sub`, but their stable internal IDs remain `ClaudeCli`, `CodexCli`, and `GeminiCli`; use `ComboBoxItem.Tag` for the internal ID.
+- Subscription-backed CLI providers display as `Anthropic Sub`, `OpenAI Sub`, and `Gemini CLI (Enterprise)`, but their stable internal IDs remain `ClaudeCli`, `CodexCli`, and `GeminiCli`; use `ComboBoxItem.Tag` for the internal ID. Google ended personal/free/AI Pro/AI Ultra access through Gemini CLI on June 18, 2026; do not replace it with Antigravity CLI until `agy -p` reliably exposes captured stdout to Windows parent processes (see `docs/settings-connection-tests.md`).
 - Keep provider-specific capability handling in the matching translation service. In particular, Anthropic model generations use different manual/adaptive thinking request shapes.
 - Verify model IDs and request compatibility against current official provider documentation. Verify OpenRouter-prefixed slugs against its `/api/v1/models` catalog before adding presets.
 

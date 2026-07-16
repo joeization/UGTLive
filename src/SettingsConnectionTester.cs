@@ -207,7 +207,7 @@ namespace UGTLive
                     string.IsNullOrWhiteSpace(config.GetGoogleTranslateApiKey()) => "Enter a Google Cloud Translation API key first.",
                 "ClaudeCli" when string.IsNullOrWhiteSpace(config.GetClaudeCliCommand()) => "Enter the Anthropic subscription command first.",
                 "CodexCli" when string.IsNullOrWhiteSpace(config.GetCodexCliCommand()) => "Enter the OpenAI subscription command first.",
-                "GeminiCli" when string.IsNullOrWhiteSpace(config.GetGeminiCliCommand()) => "Enter the Gemini subscription command first.",
+                "GeminiCli" when string.IsNullOrWhiteSpace(config.GetGeminiCliCommand()) => "Enter the Gemini CLI command first.",
                 _ => null
             };
         }

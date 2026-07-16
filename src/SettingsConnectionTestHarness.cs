@@ -177,6 +177,7 @@ namespace UGTLive
         {
             "Anthropic Sub" => "ClaudeCli",
             "OpenAI Sub" => "CodexCli",
+            "Gemini CLI (Enterprise)" => "GeminiCli",
             "Gemini Sub" => "GeminiCli",
             _ => provider
         };

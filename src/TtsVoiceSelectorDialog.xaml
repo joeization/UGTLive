@@ -72,7 +72,10 @@
                              Margin="10,0,0,0" VerticalAlignment="Center"
                              IsIndeterminate="True" Visibility="Collapsed"/>
             </StackPanel>
-            <TextBlock x:Name="testVoiceResultText" Margin="0,6,0,0" TextWrapping="Wrap"/>
+            <TextBox x:Name="testVoiceResultText" Margin="0,6,0,0" TextWrapping="Wrap"
+                     IsReadOnly="True" IsReadOnlyCaretVisible="True" BorderThickness="0"
+                     Background="Transparent" Padding="0"
+                     ToolTip="Select the result text and press Ctrl+C to copy it"/>
         </StackPanel>
 
         <!-- Buttons -->

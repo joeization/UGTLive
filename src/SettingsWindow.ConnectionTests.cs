@@ -6,6 +6,7 @@ using System.Windows.Media;
 using Button = System.Windows.Controls.Button;
 using ComboBox = System.Windows.Controls.ComboBox;
 using ProgressBar = System.Windows.Controls.ProgressBar;
+using TextBox = System.Windows.Controls.TextBox;
 
 namespace UGTLive
 {
@@ -199,7 +200,7 @@ namespace UGTLive
         private static void SetTestRunning(
             Button button,
             ProgressBar progressBar,
-            TextBlock resultText,
+            TextBox resultText,
             string message)
         {
             button.IsEnabled = false;
@@ -209,14 +210,14 @@ namespace UGTLive
             resultText.Foreground = new SolidColorBrush(Colors.Gray);
         }
 
-        private static void SetTestResult(TextBlock resultText, SettingsConnectionTestResult result)
+        private static void SetTestResult(TextBox resultText, SettingsConnectionTestResult result)
         {
             resultText.Text = result.Success ? $"Success: {result.Message}" : $"Error: {result.Message}";
             resultText.ToolTip = result.Message;
             resultText.Foreground = new SolidColorBrush(result.Success ? Colors.Green : Colors.Red);
         }
 
-        private static void ClearTestResult(TextBlock? resultText)
+        private static void ClearTestResult(TextBox? resultText)
         {
             if (resultText == null)
                 return;

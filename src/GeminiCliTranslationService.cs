@@ -10,11 +10,13 @@ namespace UGTLive
     /// </summary>
     public class GeminiCliTranslationService : CliTranslationServiceBase
     {
-        protected override string ProviderName => "Gemini Sub";
+        protected override string ProviderName => "Gemini CLI (Enterprise)";
 
         protected override string SetupHint =>
-            "Requires Gemini CLI installed and logged in once (run `gemini` and sign in " +
-            "with your Google account). Set the command path in Settings if it is not on PATH.";
+            "Gemini CLI subscription login now requires Gemini Code Assist Standard/Enterprise " +
+            "or supported Google Cloud access. Personal, free, AI Pro, and AI Ultra accounts " +
+            "must use Antigravity, whose headless output cannot yet be captured reliably by UGTLive. " +
+            "For an individual account, select the Gemini API provider instead.";
 
         protected override string GetCommand() => ConfigManager.Instance.GetGeminiCliCommand();
 
