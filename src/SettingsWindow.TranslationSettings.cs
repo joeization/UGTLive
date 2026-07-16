@@ -64,6 +64,7 @@ namespace UGTLive
                     
                     // Update service-specific settings visibility
                     UpdateServiceSpecificSettings(selectedService);
+                    ClearTestResult(translationTestResultText);
                     
                     // Load the prompt for the selected service
                     LoadCurrentServicePrompt();

@@ -576,6 +576,7 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <!-- Translation Service -->
@@ -643,6 +644,22 @@
                                          Checked="ThinkingEnabledCheckBox_Changed"
                                          Unchecked="ThinkingEnabledCheckBox_Changed"
                                          ToolTip="Enables extended reasoning for models that support it. When disabled, thinking is minimized or turned off. Applies to all LLM services."/>
+
+                                <!-- End-to-end test shared by every translation provider -->
+                                <TextBlock Text="Connection Test:" Grid.Row="6" Grid.Column="0"
+                                           VerticalAlignment="Top" Margin="0,10,10,0"/>
+                                <StackPanel Grid.Row="6" Grid.Column="1" Margin="0,7,0,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="translationTestButton" Content="Test Service / Model"
+                                                Padding="8,3" Click="TranslationTestButton_Click"
+                                                ToolTip="Send a small real translation request using the selected provider and model"/>
+                                        <ProgressBar x:Name="translationTestProgressBar" Width="90" Height="8"
+                                                     Margin="10,0,0,0" VerticalAlignment="Center"
+                                                     IsIndeterminate="True" Visibility="Collapsed"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="translationTestResultText" Margin="0,5,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
                                 
                                 <!-- Ollama URL - Only visible when Ollama is selected -->
                                 <TextBlock x:Name="ollamaUrlLabel" Text="Ollama URL:" Grid.Row="1" Grid.Column="0" 
@@ -1464,6 +1481,7 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 
                                 <!-- TTS Service -->
@@ -1601,6 +1619,22 @@
                                     <ComboBoxItem Content="Eric (Chinese)" Tag="eric"/>
                                     <ComboBoxItem Content="Sohee (Korean)" Tag="sohee"/>
                                 </ComboBox>
+
+                                <!-- End-to-end audio generation and playback test -->
+                                <TextBlock Text="Voice Test:" Grid.Row="4" Grid.Column="0"
+                                           VerticalAlignment="Top" Margin="0,10,10,0"/>
+                                <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,7,0,2">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="ttsTestButton" Content="Test &amp; Play Voice"
+                                                Padding="8,3" Click="TtsTestButton_Click"
+                                                ToolTip="Generate a short sample with the selected TTS service and voice, then play it"/>
+                                        <ProgressBar x:Name="ttsTestProgressBar" Width="90" Height="8"
+                                                     Margin="10,0,0,0" VerticalAlignment="Center"
+                                                     IsIndeterminate="True" Visibility="Collapsed"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="ttsTestResultText" Margin="0,5,0,0"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
                             </Grid>
                         </GroupBox>
                         
@@ -1729,6 +1763,7 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
                                     <PasswordBox x:Name="openAiRealtimeApiKeyPasswordBox" Grid.Row="0" 
                                                 Margin="0,5" PasswordChanged="OpenAiRealtimeApiKeyPasswordBox_PasswordChanged"/>
@@ -1737,6 +1772,18 @@
                                         <Hyperlink Click="OpenAiRealtimeApiLink_Click">https://platform.openai.com/account/api-keys</Hyperlink>
                                         <Run> (requires OpenAI account)</Run>
                                     </TextBlock>
+                                    <StackPanel Grid.Row="2" Margin="0,3,0,5">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="openAiRealtimeTestButton" Content="Test Realtime API"
+                                                    Padding="8,3" Click="OpenAiRealtimeTestButton_Click"
+                                                    ToolTip="Open a real Realtime API WebSocket and show the server reply"/>
+                                            <ProgressBar x:Name="openAiRealtimeTestProgressBar" Width="90" Height="8"
+                                                         Margin="10,0,0,0" VerticalAlignment="Center"
+                                                         IsIndeterminate="True" Visibility="Collapsed"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="openAiRealtimeTestResultText" Margin="0,5,0,0"
+                                                   TextWrapping="Wrap"/>
+                                    </StackPanel>
                                 </Grid>
                                 
                                 <!-- Audio Source -->

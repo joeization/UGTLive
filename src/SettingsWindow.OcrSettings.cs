@@ -488,8 +488,10 @@ googleVisionKeepLinefeedsCheckBox.Visibility = glueVisibility;
                 googleVisionTestResultText.Text = "Testing...";
                 googleVisionTestResultText.Foreground = new SolidColorBrush(Colors.Gray);
 
-                // Test the API key
-                var (success, message) = await GoogleVisionOCRService.Instance.TestApiKeyAsync();
+                // Use the same end-to-end test as the command-line harness.
+                SettingsConnectionTestResult result = await SettingsConnectionTester.TestGoogleVisionAsync();
+                bool success = result.Success;
+                string message = result.Message;
 
                 // Update UI with result
                 googleVisionTestResultText.Text = message;

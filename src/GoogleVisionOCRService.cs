@@ -498,7 +498,9 @@ namespace UGTLive
                     return (false, "No API key configured");
                 }
 
-                // Create a small test image
+                // Create a small test image and make a direct request here. The normal
+                // OCR path intentionally converts API failures to an empty result so the
+                // live capture loop can continue; a Settings test must preserve the reply.
                 using (Bitmap testBitmap = new Bitmap(100, 50))
                 {
                     using (Graphics g = Graphics.FromImage(testBitmap))
@@ -510,11 +512,41 @@ namespace UGTLive
                         }
                     }
 
-                    // Try to process the test image
-                    var result = await ProcessImageAsync(testBitmap, "en");
-                    
-                    // If we got here without exception, the API key is valid
-                    return (true, "API key is valid and Google Vision API is working correctly!");
+                    var requestBody = new
+                    {
+                        requests = new[]
+                        {
+                            new
+                            {
+                                image = new { content = ConvertBitmapToBase64(testBitmap) },
+                                features = new[] { new { type = "TEXT_DETECTION", maxResults = 5 } },
+                                imageContext = new { languageHints = new[] { "en" } }
+                            }
+                        }
+                    };
+
+                    using var content = new StringContent(
+                        JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+                    using HttpResponseMessage response = await _httpClient.PostAsync(
+                        $"https://vision.googleapis.com/v1/images:annotate?key={apiKey}", content);
+                    string responseBody = await response.Content.ReadAsStringAsync();
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return (false,
+                            $"Google Vision returned HTTP {(int)response.StatusCode} ({response.StatusCode}): " +
+                            ExtractGoogleVisionError(responseBody));
+                    }
+
+                    using JsonDocument document = JsonDocument.Parse(responseBody);
+                    if (document.RootElement.TryGetProperty("responses", out JsonElement responses) &&
+                        responses.ValueKind == JsonValueKind.Array && responses.GetArrayLength() > 0 &&
+                        responses[0].TryGetProperty("error", out JsonElement error))
+                    {
+                        return (false, $"Google Vision returned an error: {ExtractGoogleVisionError(error.ToString())}");
+                    }
+
+                    return (true, "API key is valid and Google Vision returned a successful OCR response.");
                 }
             }
             catch (HttpRequestException ex)
@@ -528,6 +560,25 @@ namespace UGTLive
             catch (Exception ex)
             {
                 return (false, $"Error: {ex.Message}");
+            }
+        }
+
+        private static string ExtractGoogleVisionError(string responseBody)
+        {
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(responseBody);
+                JsonElement root = document.RootElement;
+                if (root.TryGetProperty("error", out JsonElement error))
+                    root = error;
+                if (root.TryGetProperty("message", out JsonElement message))
+                    return message.GetString() ?? root.ToString();
+                return root.ToString();
+            }
+            catch (JsonException)
+            {
+                responseBody = responseBody.Trim();
+                return responseBody.Length <= 600 ? responseBody : responseBody.Substring(0, 600) + "...";
             }
         }
 

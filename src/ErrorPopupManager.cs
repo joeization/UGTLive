@@ -16,6 +16,21 @@ namespace UGTLive
         private static DateTime _lastShownUtc = DateTime.MinValue;
         private static int _suppressedCount = 0;
         private static readonly TimeSpan _cooldown = TimeSpan.FromSeconds(15);
+        private static string _lastErrorMessage = "";
+
+        /// <summary>
+        /// Most recent full service error, also available when popups are suppressed
+        /// by a headless connection test.
+        /// </summary>
+        public static string LastErrorMessage
+        {
+            get { lock (_lock) return _lastErrorMessage; }
+        }
+
+        public static void ClearLastError()
+        {
+            lock (_lock) _lastErrorMessage = "";
+        }
 
         /// <summary>
         /// When true (headless/test mode), errors are written to the console
@@ -30,6 +45,8 @@ namespace UGTLive
         /// <param name="title">The title of the error dialog</param>
         public static void ShowError(string message, string title = "Translation Error")
         {
+            lock (_lock) _lastErrorMessage = $"{title}: {message}";
+
             if (SuppressPopups)
             {
                 Console.WriteLine($"[ERROR] {title}: {message}");

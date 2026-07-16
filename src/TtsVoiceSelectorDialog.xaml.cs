@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using MessageBox = System.Windows.MessageBox;
 
 namespace UGTLive
@@ -110,6 +111,7 @@ namespace UGTLive
                 {
                     voiceComboBox.IsEnabled = SelectedService != "ElevenLabs" || !UseCustomVoiceId;
                 }
+                ClearTestResult();
             }
         }
         
@@ -161,6 +163,7 @@ namespace UGTLive
             if (voiceComboBox.SelectedItem is ComboBoxItem selectedItem && selectedItem.Tag != null)
             {
                 SelectedVoice = selectedItem.Tag.ToString() ?? "";
+                ClearTestResult();
             }
         }
         
@@ -180,7 +183,70 @@ namespace UGTLive
                 {
                     voiceComboBox.IsEnabled = SelectedService != "ElevenLabs" || !UseCustomVoiceId;
                 }
+                ClearTestResult();
             }
+        }
+
+        private async void TestVoiceButton_Click(object sender, RoutedEventArgs e)
+        {
+            testVoiceButton.IsEnabled = false;
+            testVoiceProgressBar.Visibility = Visibility.Visible;
+            testVoiceResultText.Text = "Generating a real audio response...";
+            testVoiceResultText.Foreground = new SolidColorBrush(Colors.Gray);
+
+            try
+            {
+                string voiceId;
+                if (SelectedService == "ElevenLabs" && useCustomVoiceCheckBox.IsChecked == true)
+                {
+                    voiceId = customVoiceIdTextBox.Text.Trim();
+                    if (string.IsNullOrWhiteSpace(voiceId))
+                    {
+                        SetTestResult(new SettingsConnectionTestResult(false,
+                            "Enter a custom ElevenLabs voice ID first."));
+                        return;
+                    }
+                }
+                else if (voiceComboBox.SelectedItem is ComboBoxItem voiceItem)
+                {
+                    voiceId = voiceItem.Tag?.ToString() ?? "";
+                }
+                else
+                {
+                    SetTestResult(new SettingsConnectionTestResult(false, "Select a voice first."));
+                    return;
+                }
+
+                SettingsConnectionTestResult result = await SettingsConnectionTester.TestTtsAsync(
+                    SelectedService, voiceId, playAudio: true);
+                SetTestResult(result);
+            }
+            catch (Exception ex)
+            {
+                SetTestResult(new SettingsConnectionTestResult(false, ex.Message));
+            }
+            finally
+            {
+                testVoiceButton.IsEnabled = true;
+                testVoiceProgressBar.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void SetTestResult(SettingsConnectionTestResult result)
+        {
+            testVoiceResultText.Text = result.Success
+                ? $"Success: {result.Message}"
+                : $"Error: {result.Message}";
+            testVoiceResultText.ToolTip = result.Message;
+            testVoiceResultText.Foreground = new SolidColorBrush(result.Success ? Colors.Green : Colors.Red);
+        }
+
+        private void ClearTestResult()
+        {
+            if (testVoiceResultText == null)
+                return;
+            testVoiceResultText.Text = "";
+            testVoiceResultText.ToolTip = null;
         }
         
         private void OkButton_Click(object sender, RoutedEventArgs e)

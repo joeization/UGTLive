@@ -194,7 +194,7 @@ namespace UGTLive
             Console.WriteLine("=== All Loaded Config Values ===");
             foreach (var entry in _configValues)
             {
-                Console.WriteLine($"  {entry.Key} = {(entry.Key.Contains("api_key") ? "***" : entry.Value)}");
+                Console.WriteLine($"  {entry.Key} = {(IsSensitiveConfigKey(entry.Key) ? "***" : entry.Value)}");
             }
             Console.WriteLine("===============================");
         }
@@ -466,7 +466,7 @@ namespace UGTLive
                         if (!_configValues.ContainsKey(key))
                         {
                             _configValues[key] = value;
-                            Console.WriteLine($"Loaded config: {key}={value}");
+                            Console.WriteLine($"Loaded config: {key}={(IsSensitiveConfigKey(key) ? "***" : value)}");
                         }
                     }
                 }
@@ -475,6 +475,17 @@ namespace UGTLive
             {
                 Console.WriteLine($"Error parsing single-line values: {ex.Message}");
             }
+        }
+
+        private static bool IsSensitiveConfigKey(string key)
+        {
+            return key.Contains("api_key", StringComparison.OrdinalIgnoreCase) ||
+                   key.Contains("password", StringComparison.OrdinalIgnoreCase) ||
+                   key.Contains("secret", StringComparison.OrdinalIgnoreCase) ||
+                   key.Contains("token", StringComparison.OrdinalIgnoreCase) ||
+                   key.Contains("credential", StringComparison.OrdinalIgnoreCase) ||
+                   key.Contains("authorization", StringComparison.OrdinalIgnoreCase) ||
+                   key.Contains("cookie", StringComparison.OrdinalIgnoreCase);
         }
 
         // Save configuration to file

@@ -163,6 +163,7 @@ namespace UGTLive
                     
                     // Update UI for the selected service
                     UpdateTtsServiceSpecificSettings(service);
+                    ClearTestResult(ttsTestResultText);
                 }
             }
             catch (Exception ex)

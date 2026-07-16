@@ -33,6 +33,15 @@ public partial class App : Application
         Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
         Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
 
+        // Headless Settings connection tests share the exact implementation used
+        // by the API/model/voice Test buttons.
+        if (SettingsConnectionTestHarness.IsTestModeRequested(e.Args))
+        {
+            int code = SettingsConnectionTestHarness.Run(e.Args);
+            Environment.Exit(code);
+            return;
+        }
+
         // Headless translation smoke-test mode: run and exit without showing any UI.
         if (TranslationTestHarness.IsTestModeRequested(e.Args))
         {

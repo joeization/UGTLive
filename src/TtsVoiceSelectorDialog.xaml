@@ -63,8 +63,20 @@
                     IsEnabled="{Binding ElementName=useCustomVoiceCheckBox, Path=IsChecked}"/>
         </StackPanel>
         
+        <!-- End-to-end test for this service/voice selection -->
+        <StackPanel Grid.Row="5" VerticalAlignment="Top" Margin="0,5,0,10">
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="testVoiceButton" Content="Test &amp; Play Voice"
+                        Padding="10,5" Click="TestVoiceButton_Click"/>
+                <ProgressBar x:Name="testVoiceProgressBar" Width="90" Height="8"
+                             Margin="10,0,0,0" VerticalAlignment="Center"
+                             IsIndeterminate="True" Visibility="Collapsed"/>
+            </StackPanel>
+            <TextBlock x:Name="testVoiceResultText" Margin="0,6,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+
         <!-- Buttons -->
-        <StackPanel Grid.Row="5" Orientation="Horizontal" 
+        <StackPanel Grid.Row="6" Orientation="Horizontal"
                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,10,0,0">
             <Button Content="Cancel" Click="CancelButton_Click" 
                    Margin="0,0,10,0" Padding="15,5" MinWidth="80" Height="30"/>

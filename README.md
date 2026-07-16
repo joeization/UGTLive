@@ -197,6 +197,7 @@ In the future, we can probably send the entire screenshot directly to an LLM and
 ## For developers - How to compile it ##
 
 * Open the solution with VSCode or Visual Studio, it's a standard C# project. I can't remember if it's going to automatically download the libraries it needs or not.
+* API, subscription, realtime, and TTS Settings tests can also be automated from the executable. See [Settings connection tests](docs/settings-connection-tests.md) for command-line examples and exit codes.
 
 **Credits and links**
 

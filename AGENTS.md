@@ -22,12 +22,18 @@ Scope policy: this file holds cross-cutting rules, workflows, and gotchas that m
 - Always finish project changes by building the Release configuration: `dotnet build .\UGTLive.sln --configuration Release`.
 - If a running UGTLive process prevents the Release build, capture its executable/command line, stop it, complete the build, and restart it afterward. Do not start UGTLive if it was not running before the build.
 
+Always add automation/test harnesses to test options/buttons/features as needed. Document them.
+
 ## Cloud LLM Model Maintenance
 
 - Cloud and CLI model picker presets live in `src/SettingsWindow.xaml`; their fallback/default values live in `src/ConfigManager.cs`, `src/ConfigManager.Translation.cs`, and `src/SettingsWindow.TranslationSettings.cs`.
 - Subscription-backed CLI providers display as `Anthropic Sub`, `OpenAI Sub`, and `Gemini Sub`, but their stable internal IDs remain `ClaudeCli`, `CodexCli`, and `GeminiCli`; use `ComboBoxItem.Tag` for the internal ID.
 - Keep provider-specific capability handling in the matching translation service. In particular, Anthropic model generations use different manual/adaptive thinking request shapes.
 - Verify model IDs and request compatibility against current official provider documentation. Verify OpenRouter-prefixed slugs against its `/api/v1/models` catalog before adding presets.
+
+## Feature Index
+
+- Settings API/model/voice tests: see `docs/settings-connection-tests.md`. UI buttons and `--test-settings-connection` must continue to call the shared `SettingsConnectionTester` implementation.
 
 
 ## Security
@@ -36,6 +42,7 @@ Scope policy: this file holds cross-cutting rules, workflows, and gotchas that m
 - If an AI assistant needs authentication data or other secrets for local work, use `agents_secret.md` for those notes.
 - `agents_secret.md` must stay ignored by git and must not be committed.
 - Do not put secrets in commit messages, logs, issue text, pull request descriptions, generated docs, or other tracked files.
+- Configuration logging must pass key names through `ConfigManager.IsSensitiveConfigKey`; never print raw secret values in startup or harness output.
 - Before committing, review staged changes for accidental secrets.
 
 ## Git
