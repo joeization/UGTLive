@@ -34,6 +34,7 @@ Always add automation/test harnesses to test options/buttons/features as needed.
 ## Feature Index
 
 - Settings API/model/voice tests: see `docs/settings-connection-tests.md`. UI buttons and `--test-settings-connection` must continue to call the shared `SettingsConnectionTester` implementation.
+- OpenAI All In One Snap translation: see `docs/openai-all-in-one.md`. It is a Snap-only, visual-only `gpt-image-2` Image Edits path; Auto and realtime processing must remain on the standard OCR pipeline.
 
 
 ## Security

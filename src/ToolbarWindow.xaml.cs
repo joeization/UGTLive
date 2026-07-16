@@ -153,6 +153,11 @@ namespace UGTLive
             MainWindow.Instance?.HandleSnapshotButton();
         }
 
+        private void AllInOneComparisonButton_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow.Instance?.HandleOpenAIAllInOneComparisonToggle();
+        }
+
         private void UtilitiesButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.Button btn && btn.ContextMenu != null)
@@ -248,6 +253,23 @@ namespace UGTLive
                     break;
             }
             _isInitialized = true;
+        }
+
+        public void ShowOpenAIAllInOneResult(double elapsedSeconds, bool showingTranslated)
+        {
+            allInOneElapsedText.Text = $"Completed: {elapsedSeconds:F1}s";
+            allInOneResultPanel.Visibility = Visibility.Visible;
+            SyncOpenAIAllInOneComparison(showingTranslated);
+        }
+
+        public void HideOpenAIAllInOneResult()
+        {
+            allInOneResultPanel.Visibility = Visibility.Collapsed;
+        }
+
+        public void SyncOpenAIAllInOneComparison(bool showingTranslated)
+        {
+            allInOneComparisonButton.Content = showingTranslated ? "Show Original" : "Show Translated";
         }
 
         public void SyncPassthrough(bool enabled)

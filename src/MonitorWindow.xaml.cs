@@ -873,7 +873,10 @@ namespace UGTLive
                     Dispatcher.Invoke(new Action(() => RefreshOverlays()), DispatcherPriority.Send);
                     return;
                 }
-                
+
+                if (RefreshOpenAIAllInOneDisplay())
+                    return;
+
                 // Skip profiler for faster refresh
                 // Trigger WebView update immediately
                 UpdateOverlayWebView();

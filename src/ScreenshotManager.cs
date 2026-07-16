@@ -40,7 +40,8 @@ namespace UGTLive
         {
             try
             {
-                BitmapSource? source = MonitorWindow.Instance.GetCurrentCaptureBitmapSource();
+                OpenAIAllInOneSnapshotImages? allInOneImages = MonitorWindow.Instance.GetOpenAIAllInOneSnapshotImages();
+                BitmapSource? source = allInOneImages?.Source ?? MonitorWindow.Instance.GetCurrentCaptureBitmapSource();
                 if (source == null)
                 {
                     ToastOverlayWindow.ShowToast("Screenshot failed: No capture available");
@@ -75,7 +76,16 @@ namespace UGTLive
                     string suffix = screenshotType == "Both" ? $"{targetLang}_" : "";
                     string path = getNextAvailablePath(folder, filenameBase + suffix);
 
-                    if (hasOverlays)
+                    if (allInOneImages?.Translated != null)
+                    {
+                        saveBitmapAsPng(allInOneImages.Translated, path);
+                    }
+                    else if (allInOneImages != null)
+                    {
+                        saveBitmapAsPng(source, path);
+                        warning = "\n(Warning: translated image is not ready yet)";
+                    }
+                    else if (hasOverlays)
                     {
                         BitmapSource? composited = await renderTargetImageAsync(source);
                         saveBitmapAsPng(composited ?? source, path);

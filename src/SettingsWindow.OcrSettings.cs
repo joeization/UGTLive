@@ -26,6 +26,103 @@ namespace UGTLive
 {
     public partial class SettingsWindow
     {
+        private void LoadOpenAIAllInOneSettings()
+        {
+            SnapshotProcessingMode mode = ConfigManager.Instance.GetSnapshotProcessingMode();
+            foreach (ComboBoxItem item in snapshotProcessingModeComboBox.Items)
+            {
+                if (string.Equals(item.Tag?.ToString(), mode.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    snapshotProcessingModeComboBox.SelectedItem = item;
+                    break;
+                }
+            }
+
+            openAiAllInOneApiKeyPasswordBox.Password = ConfigManager.Instance.GetOpenAIAllInOneApiKey();
+            openAiAllInOneModelText.Text = ConfigManager.Instance.GetOpenAIAllInOneModel();
+            OpenAIAllInOneQuality quality = ConfigManager.Instance.GetOpenAIAllInOneQuality();
+            foreach (ComboBoxItem item in openAiAllInOneQualityComboBox.Items)
+            {
+                if (string.Equals(item.Tag?.ToString(), quality.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    openAiAllInOneQualityComboBox.SelectedItem = item;
+                    break;
+                }
+            }
+
+            UpdateOpenAIAllInOneSettingsVisibility();
+        }
+
+        private void SnapshotProcessingModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (snapshotProcessingModeComboBox.SelectedItem is not ComboBoxItem item ||
+                !Enum.TryParse(item.Tag?.ToString(), ignoreCase: true, out SnapshotProcessingMode mode))
+                return;
+
+            UpdateOpenAIAllInOneSettingsVisibility();
+            if (_isInitializing)
+                return;
+
+            ConfigManager.Instance.SetSnapshotProcessingMode(mode);
+            MainWindow.Instance?.OnSnapshotProcessingModeChanged();
+        }
+
+        private void UpdateOpenAIAllInOneSettingsVisibility()
+        {
+            bool selected = snapshotProcessingModeComboBox.SelectedItem is ComboBoxItem item &&
+                string.Equals(item.Tag?.ToString(), SnapshotProcessingMode.OpenAIAllInOne.ToString(), StringComparison.OrdinalIgnoreCase);
+            openAiAllInOneSettingsPanel.Visibility = selected ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void OpenAiAllInOneApiKeyPasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializing)
+                return;
+            ConfigManager.Instance.SetOpenAIAllInOneApiKey(openAiAllInOneApiKeyPasswordBox.Password);
+            openAiAllInOneTestResultText.Text = string.Empty;
+        }
+
+        private void OpenAiAllInOneQualityComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || openAiAllInOneQualityComboBox.SelectedItem is not ComboBoxItem item ||
+                !Enum.TryParse(item.Tag?.ToString(), ignoreCase: true, out OpenAIAllInOneQuality quality))
+                return;
+            ConfigManager.Instance.SetOpenAIAllInOneQuality(quality);
+        }
+
+        private async void OpenAiAllInOneTestAccessButton_Click(object sender, RoutedEventArgs e)
+        {
+            openAiAllInOneTestAccessButton.IsEnabled = false;
+            openAiAllInOneTestProgressBar.Visibility = Visibility.Visible;
+            openAiAllInOneTestResultText.Foreground = new SolidColorBrush(Colors.Gray);
+            openAiAllInOneTestResultText.Text = "Checking API access...";
+
+            try
+            {
+                var service = new OpenAIAllInOneImageService();
+                await service.TestAccessAsync(
+                    openAiAllInOneApiKeyPasswordBox.Password,
+                    ConfigManager.Instance.GetOpenAIAllInOneModel());
+                openAiAllInOneTestResultText.Foreground = new SolidColorBrush(Colors.Green);
+                openAiAllInOneTestResultText.Text = "API key accepted and the image model is visible. The first image edit may still require OpenAI organization verification.";
+            }
+            catch (Exception ex)
+            {
+                openAiAllInOneTestResultText.Foreground = new SolidColorBrush(Colors.Red);
+                openAiAllInOneTestResultText.Text = ex.Message;
+            }
+            finally
+            {
+                openAiAllInOneTestProgressBar.Visibility = Visibility.Collapsed;
+                openAiAllInOneTestAccessButton.IsEnabled = true;
+            }
+        }
+
+        private void OpenAiAllInOneApiLink_Click(object sender, RoutedEventArgs e)
+        {
+            OpenUrl("https://platform.openai.com/api-keys");
+        }
+
         // OCR settings
         private void OcrMethodComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

@@ -191,6 +191,9 @@ namespace UGTLive
 
                 // Populate OCR method options from shared configuration
                 PopulateOcrMethodOptions();
+
+                // Load the Snap-only OpenAI image translation settings.
+                LoadOpenAIAllInOneSettings();
                 
                 // Populate font family combo boxes
                 PopulateFontFamilyComboBoxes();

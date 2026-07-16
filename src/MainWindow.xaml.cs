@@ -320,6 +320,8 @@ namespace UGTLive
                     SetStatus("Using EasyOCR");
                 }
             }
+
+            UpdateHotkeyTooltips();
         }
         
         public void SetAutoTranslateEnabled(bool enabled)
@@ -541,7 +543,12 @@ namespace UGTLive
             
             // Update button tooltips
             if (toggleButton != null)
-                toggleButton.ToolTip = $"Auto Mode: Continuous OCR + Translation{HotkeyManager.Instance.GetHotkeyDisplayString("start_stop")}";
+            {
+                string allInOneNote = ConfigManager.Instance.GetSnapshotProcessingMode() == SnapshotProcessingMode.OpenAIAllInOne
+                    ? " OpenAI All In One is Snap-only; Auto continues using the normal OCR method."
+                    : string.Empty;
+                toggleButton.ToolTip = $"Auto Mode: Continuous OCR + Translation ({GetSelectedOcrMethod()}).{allInOneNote}{HotkeyManager.Instance.GetHotkeyDisplayString("start_stop")}";
+            }
                 
             if (monitorButton != null)
                 monitorButton.ToolTip = $"Toggle Monitor Window{HotkeyManager.Instance.GetHotkeyDisplayString("toggle_monitor")}";
@@ -568,7 +575,12 @@ namespace UGTLive
                 mousePassthroughCheckBox.ToolTip = $"Toggle mouse passthrough mode{HotkeyManager.Instance.GetHotkeyDisplayString("toggle_passthrough")}";
             
             if (snapshotButton != null)
-                snapshotButton.ToolTip = $"Snap: Single OCR capture{HotkeyManager.Instance.GetHotkeyDisplayString("snapshot")}";
+            {
+                string snapshotMethod = ConfigManager.Instance.GetSnapshotProcessingMode() == SnapshotProcessingMode.OpenAIAllInOne
+                    ? "OpenAI All In One (experimental)"
+                    : "Standard OCR + Translation";
+                snapshotButton.ToolTip = $"Snap: {snapshotMethod}{HotkeyManager.Instance.GetHotkeyDisplayString("snapshot")}";
+            }
             
             // Update overlay radio buttons
             string overlayHotkey = HotkeyManager.Instance.GetHotkeyDisplayString("toggle_overlay_mode");
@@ -1110,6 +1122,8 @@ namespace UGTLive
             }
             else
             {
+                CancelOpenAIAllInOneSnapshot();
+                ClearOpenAIAllInOneOverlay();
                 Logic.Instance.ResetHash();
                 Logic.Instance.ClearAllTextObjects();
                 MonitorWindow.Instance.RefreshOverlays();
@@ -1148,12 +1162,14 @@ namespace UGTLive
             // If a snapshot is in progress, always cancel it (regardless of toggle mode)
             if (_snapshotInProgress)
             {
+                CancelOpenAIAllInOneSnapshot();
                 Logic.Instance.CancelTranslation();
                 Logic.Instance.ClearAllTextObjects();
                 Logic.Instance.ResetHash();
                 _isSnapshotOverlayDisplayed = false;
                 _snapshotInProgress = false;
                 _lastOverlayHtml = string.Empty;
+                ClearOpenAIAllInOneOverlay();
                 MonitorWindow.Instance.RefreshOverlays();
                 RefreshMainWindowOverlays();
                 
@@ -1173,11 +1189,13 @@ namespace UGTLive
             // If overlay is displayed and toggle mode is enabled, clear and return (toggle off)
             if (toggleMode && _isSnapshotOverlayDisplayed)
             {
+                CancelOpenAIAllInOneSnapshot();
                 Logic.Instance.CancelTranslation();
                 Logic.Instance.ClearAllTextObjects();
                 Logic.Instance.ResetHash();
                 _isSnapshotOverlayDisplayed = false;
                 _lastOverlayHtml = string.Empty;
+                ClearOpenAIAllInOneOverlay();
                 MonitorWindow.Instance.RefreshOverlays();
                 RefreshMainWindowOverlays();
                 
@@ -1199,6 +1217,9 @@ namespace UGTLive
             {
                 _isSnapshotOverlayDisplayed = false;
             }
+
+            CancelOpenAIAllInOneSnapshot();
+            ClearOpenAIAllInOneOverlay();
             
             // Mark snapshot as in progress to prevent double-triggering
             _snapshotInProgress = true;
@@ -1206,10 +1227,13 @@ namespace UGTLive
             UpdateSnapshotButtonState();
             
             // Show snapshot status
+            bool useOpenAIAllInOne = ConfigManager.Instance.GetSnapshotProcessingMode() == SnapshotProcessingMode.OpenAIAllInOne;
             string ocrMethod = GetSelectedOcrMethod();
             if (translationStatusLabel != null)
             {
-                translationStatusLabel.Text = $"Snapshotting ({ocrMethod})...";
+                translationStatusLabel.Text = useOpenAIAllInOne
+                    ? "Snapshotting (OpenAI All In One)..."
+                    : $"Snapshotting ({ocrMethod})...";
             }
             if (translationStatusBorder != null)
             {
@@ -1223,8 +1247,9 @@ namespace UGTLive
             MonitorWindow.Instance.RefreshOverlays();
             RefreshMainWindowOverlays();
             
-            // Prepare Logic for snapshot mode (bypasses settling)
-            Logic.Instance.PrepareSnapshotOCR();
+            // Standard snapshots use the OCR/translation pipeline. All In One bypasses it.
+            if (!useOpenAIAllInOne)
+                Logic.Instance.PrepareSnapshotOCR();
             
             // Enable debug logging for this snapshot
             _logCaptureRectOnce = true;
@@ -1232,8 +1257,9 @@ namespace UGTLive
             // Clear any delay restriction
             _ocrReenableTime = DateTime.MinValue;
             
-            // Force OCR to run
-            SetOCRCheckIsWanted(true);
+            // Force OCR to run for standard snapshots only.
+            if (!useOpenAIAllInOne)
+                SetOCRCheckIsWanted(true);
             
             // Trigger capture directly
             PerformSnapshotCapture();
@@ -1340,7 +1366,16 @@ namespace UGTLive
 
                 try
                 {
+                    bool useOpenAIAllInOne = ConfigManager.Instance.GetSnapshotProcessingMode() == SnapshotProcessingMode.OpenAIAllInOne;
+                    if (useOpenAIAllInOne)
+                    {
+                        MonitorWindow.Instance.BeginOpenAIAllInOneSnapshot(bitmap);
+                        StartOpenAIAllInOneSnapshot(bitmap);
+                        return;
+                    }
+
                     // Update Monitor window with the copy
+                    MonitorWindow.Instance.ClearOpenAIAllInOneSnapshot();
                     MonitorWindow.Instance.UpdateScreenshotFromBitmap(bitmap, showWindow: false);
 
                     // Send to OCR (snapshot mode bypasses settling in Logic)
@@ -1570,6 +1605,8 @@ namespace UGTLive
         {
             try
             {
+                CancelOpenAIAllInOneSnapshot();
+
                 // Stop OCR if it's currently running to prevent conflicts during shutdown
                 if (isStarted)
                 {

@@ -231,6 +231,81 @@
             <TabItem Header="OCR &amp; Detection">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="20">
+                        <!-- Snapshot Processing -->
+                        <GroupBox Header="Snapshot Processing" Margin="0,0,0,15" Padding="10">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Snapshot method:" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox x:Name="snapshotProcessingModeComboBox" Grid.Column="1" Margin="0,5"
+                                              SelectionChanged="SnapshotProcessingModeComboBox_SelectionChanged">
+                                        <ComboBoxItem Content="Standard OCR + Translation" Tag="Standard"/>
+                                        <ComboBoxItem Content="OpenAI All In One (Experimental)" Tag="OpenAIAllInOne"/>
+                                    </ComboBox>
+                                </Grid>
+
+                                <StackPanel x:Name="openAiAllInOneSettingsPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                                    <Border Background="#FFFFF3CD" BorderBrush="#FFE0A000" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                                        <TextBlock TextWrapping="Wrap" Foreground="#FF3B2A00"
+                                                   Text="Experimental, Snap-only mode. OpenAI analyzes the captured image, translates its visible text, and regenerates the translated image in one request. The captured image is uploaded to OpenAI. It can be substantially slower and more costly than normal OCR. Auto and realtime modes continue using the OCR method below. This visual-only mode does not produce transcript text, TTS, editable text blocks, history, or structured-text exports."/>
+                                    </Border>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="OpenAI API Key:" Grid.Row="0" Grid.Column="0" VerticalAlignment="Top" Margin="0,8,10,0"/>
+                                        <Grid Grid.Row="0" Grid.Column="1" Margin="0,5">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <PasswordBox x:Name="openAiAllInOneApiKeyPasswordBox" Grid.Row="0" Grid.Column="0" Margin="0,0,8,0"
+                                                         PasswordChanged="OpenAiAllInOneApiKeyPasswordBox_PasswordChanged"/>
+                                            <Button x:Name="openAiAllInOneTestAccessButton" Grid.Row="0" Grid.Column="1" Content="Test API Access"
+                                                    Padding="8,3" Click="OpenAiAllInOneTestAccessButton_Click"/>
+                                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" TextWrapping="Wrap" Margin="0,3,0,0" FontSize="11">
+                                                <Run>Get an API key from </Run>
+                                                <Hyperlink Click="OpenAiAllInOneApiLink_Click">platform.openai.com/api-keys</Hyperlink>
+                                            </TextBlock>
+                                        </Grid>
+
+                                        <TextBlock Text="Model:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock x:Name="openAiAllInOneModelText" Grid.Row="1" Grid.Column="1" Margin="0,5" VerticalAlignment="Center" FontWeight="SemiBold"/>
+
+                                        <TextBlock Text="Image quality:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <ComboBox x:Name="openAiAllInOneQualityComboBox" Grid.Row="2" Grid.Column="1" Margin="0,5"
+                                                  SelectionChanged="OpenAiAllInOneQualityComboBox_SelectionChanged">
+                                            <ComboBoxItem Content="Low (fastest / lowest cost)" Tag="Low"/>
+                                            <ComboBoxItem Content="Medium (recommended)" Tag="Medium"/>
+                                            <ComboBoxItem Content="High (slowest / highest cost)" Tag="High"/>
+                                        </ComboBox>
+
+                                        <ProgressBar x:Name="openAiAllInOneTestProgressBar" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                                     Height="4" Margin="0,5" IsIndeterminate="True" Visibility="Collapsed"/>
+                                        <TextBlock x:Name="openAiAllInOneTestResultText" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                                   Margin="0,3,0,0" TextWrapping="Wrap" Foreground="Gray"/>
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
                         <!-- OCR Settings -->
                         <GroupBox Header="OCR Settings" Margin="0,0,0,15" Padding="10">
                             <Grid>

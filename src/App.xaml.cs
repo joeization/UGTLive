@@ -42,6 +42,14 @@ public partial class App : Application
             return;
         }
 
+        // Headless OpenAI All In One smoke-test mode: run and exit without showing any UI.
+        if (OpenAIAllInOneTestHarness.IsTestModeRequested(e.Args))
+        {
+            int code = OpenAIAllInOneTestHarness.Run(e.Args);
+            Environment.Exit(code);
+            return;
+        }
+
         // Headless translation smoke-test mode: run and exit without showing any UI.
         if (TranslationTestHarness.IsTestModeRequested(e.Args))
         {

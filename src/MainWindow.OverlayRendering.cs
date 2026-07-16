@@ -999,6 +999,8 @@ namespace UGTLive
             
             try
             {
+                if (UpdateOpenAIAllInOneOverlayVisibility())
+                    return;
                 UpdateMainWindowOverlayWebView();
             }
             catch (Exception ex)

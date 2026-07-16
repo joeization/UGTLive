@@ -20,6 +20,10 @@ namespace UGTLive
         public const string GEMINI_THINKING_ENABLED = "gemini_thinking_enabled";
         public const string TRANSLATION_SERVICE = "translation_service";
         public const string OCR_METHOD = "ocr_method";
+        public const string SNAPSHOT_PROCESSING_MODE = "snapshot_processing_mode";
+        public const string OPENAI_ALL_IN_ONE_API_KEY = "openai_all_in_one_api_key";
+        public const string OPENAI_ALL_IN_ONE_MODEL = "openai_all_in_one_model";
+        public const string OPENAI_ALL_IN_ONE_QUALITY = "openai_all_in_one_quality";
         public const string OLLAMA_URL = "ollama_url";
         public const string OLLAMA_PORT = "ollama_port";
         public const string OLLAMA_MODEL = "ollama_model";

@@ -78,6 +78,21 @@
             <Button x:Name="snapshotButton" Content="Snap" Style="{StaticResource ToolbarButtonStyle}"
                     Click="SnapshotButton_Click"/>
 
+            <StackPanel x:Name="allInOneResultPanel" Visibility="Collapsed" Margin="0,2,0,1">
+                <TextBlock x:Name="allInOneElapsedText"
+                           Foreground="#FFFFD166"
+                           FontSize="10"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           Text="Completed: 0.0s"
+                           Margin="2,1"/>
+                <Button x:Name="allInOneComparisonButton"
+                        Content="Show Original"
+                        Style="{StaticResource ToolbarButtonStyle}"
+                        Click="AllInOneComparisonButton_Click"
+                        ToolTip="Toggle this snapshot between its original and translated images"/>
+            </StackPanel>
+
             <Button x:Name="toggleButton" Content="Auto" Style="{StaticResource ToolbarButtonStyle}"
                     Click="ToggleButton_Click"/>
 
