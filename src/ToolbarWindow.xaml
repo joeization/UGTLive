@@ -86,6 +86,13 @@
                            TextAlignment="Center"
                            Text="Completed: 0.0s"
                            Margin="2,1"/>
+                <TextBlock x:Name="allInOnePixelText"
+                           Foreground="#FFD8D8D8"
+                           FontSize="9"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Text="In: 0x0&#x0a;Out: 0x0"
+                           Margin="1,0,1,2"/>
                 <Button x:Name="allInOneComparisonButton"
                         Content="Show Original"
                         Style="{StaticResource ToolbarButtonStyle}"

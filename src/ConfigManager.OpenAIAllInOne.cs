@@ -47,5 +47,42 @@ namespace UGTLive
             _configValues[OPENAI_ALL_IN_ONE_QUALITY] = quality.ToString().ToLowerInvariant();
             SaveConfig();
         }
+
+        public int GetOpenAIAllInOneInputMaxEdge()
+        {
+            string value = GetValue(OPENAI_ALL_IN_ONE_INPUT_MAX_EDGE, "1024");
+            return int.TryParse(value, out int maxEdge)
+                ? Math.Clamp(maxEdge, 256, OpenAIAllInOneImageNormalizer.MaximumEdge)
+                : 1024;
+        }
+
+        public void SetOpenAIAllInOneInputMaxEdge(int maxEdge)
+        {
+            _configValues[OPENAI_ALL_IN_ONE_INPUT_MAX_EDGE] = Math.Clamp(
+                maxEdge,
+                256,
+                OpenAIAllInOneImageNormalizer.MaximumEdge).ToString();
+            SaveConfig();
+        }
+
+        public int GetOpenAIAllInOneOutputTargetPixels()
+        {
+            string value = GetValue(OPENAI_ALL_IN_ONE_OUTPUT_TARGET_PIXELS, "655360");
+            return int.TryParse(value, out int pixels)
+                ? Math.Clamp(
+                    pixels,
+                    OpenAIAllInOneImageNormalizer.MinimumPixels,
+                    OpenAIAllInOneImageNormalizer.MaximumPixels)
+                : OpenAIAllInOneImageNormalizer.MinimumPixels;
+        }
+
+        public void SetOpenAIAllInOneOutputTargetPixels(int pixels)
+        {
+            _configValues[OPENAI_ALL_IN_ONE_OUTPUT_TARGET_PIXELS] = Math.Clamp(
+                pixels,
+                OpenAIAllInOneImageNormalizer.MinimumPixels,
+                OpenAIAllInOneImageNormalizer.MaximumPixels).ToString();
+            SaveConfig();
+        }
     }
 }

@@ -56,6 +56,10 @@ namespace UGTLive
                 $"{Path.GetFileNameWithoutExtension(imagePath)}.openai-all-in-one.png");
             string apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY")
                 ?? ConfigManager.Instance.GetOpenAIAllInOneApiKey();
+            int inputMaxEdge = GetIntArg(args, "--input-max-edge")
+                ?? ConfigManager.Instance.GetOpenAIAllInOneInputMaxEdge();
+            int outputTargetPixels = GetIntArg(args, "--output-target-pixels")
+                ?? ConfigManager.Instance.GetOpenAIAllInOneOutputTargetPixels();
 
             using var loaded = new Bitmap(imagePath);
             using var source = new Bitmap(loaded);
@@ -68,12 +72,18 @@ namespace UGTLive
                 apiKey,
                 ConfigManager.Instance.GetOpenAIAllInOneModel(),
                 ConfigManager.Instance.GetOpenAIAllInOneQuality(),
+                inputMaxEdge,
+                outputTargetPixels,
                 progress,
                 CancellationToken.None);
 
             File.WriteAllBytes(outputPath, result.ImageBytes);
             Console.WriteLine($"Output: {outputPath}");
             Console.WriteLine($"Elapsed: {result.Elapsed.TotalSeconds:F1}s");
+            Console.WriteLine($"Uploaded input: {FormatSize(result.InputSize)}");
+            Console.WriteLine($"Requested output: {FormatSize(result.RequestedOutputSize)}");
+            Console.WriteLine($"API returned: {FormatSize(result.ReceivedOutputSize)}");
+            Console.WriteLine($"Restored output: {FormatSize(result.RestoredSize)}");
             Console.WriteLine("RESULT: PASS - translated image produced");
             return 0;
         }
@@ -96,15 +106,35 @@ namespace UGTLive
                 else if ((double)paddedHeight / paddedWidth > OpenAIAllInOneImageNormalizer.MaximumAspectRatio)
                     paddedWidth = (int)Math.Ceiling(paddedHeight / OpenAIAllInOneImageNormalizer.MaximumAspectRatio);
 
-                Size size = OpenAIAllInOneImageNormalizer.CalculatePreparedSize(paddedWidth, paddedHeight);
-                long pixels = (long)size.Width * size.Height;
-                if (size.Width % 16 != 0 || size.Height % 16 != 0 ||
-                    size.Width > 3840 || size.Height > 3840 ||
-                    pixels < OpenAIAllInOneImageNormalizer.MinimumPixels ||
-                    pixels > OpenAIAllInOneImageNormalizer.MaximumPixels ||
-                    Math.Max((double)size.Width / size.Height, (double)size.Height / size.Width) > 3.0)
+                foreach (int maxEdge in new[] { 256, 512, 1024, 3840 })
                 {
-                    failures.Add($"Invalid normalized size for {width}x{height}: {size.Width}x{size.Height}");
+                    Size inputSize = OpenAIAllInOneImageNormalizer.CalculateInputSize(paddedWidth, paddedHeight, maxEdge);
+                    if (inputSize.Width % 16 != 0 || inputSize.Height % 16 != 0 ||
+                        inputSize.Width > maxEdge || inputSize.Height > maxEdge ||
+                        Math.Max((double)inputSize.Width / inputSize.Height, (double)inputSize.Height / inputSize.Width) > 3.0)
+                    {
+                        failures.Add($"Invalid input size for {width}x{height} at max edge {maxEdge}: {inputSize.Width}x{inputSize.Height}");
+                    }
+                }
+
+                foreach (int targetPixels in new[]
+                {
+                    OpenAIAllInOneImageNormalizer.MinimumPixels,
+                    1_048_576,
+                    2_073_600,
+                    OpenAIAllInOneImageNormalizer.MaximumPixels
+                })
+                {
+                    Size size = OpenAIAllInOneImageNormalizer.CalculatePreparedSize(paddedWidth, paddedHeight, targetPixels);
+                    long pixels = (long)size.Width * size.Height;
+                    if (size.Width % 16 != 0 || size.Height % 16 != 0 ||
+                        size.Width > 3840 || size.Height > 3840 ||
+                        pixels < OpenAIAllInOneImageNormalizer.MinimumPixels ||
+                        pixels > OpenAIAllInOneImageNormalizer.MaximumPixels ||
+                        Math.Max((double)size.Width / size.Height, (double)size.Height / size.Width) > 3.0)
+                    {
+                        failures.Add($"Invalid output size for {width}x{height} at {targetPixels:N0} pixels: {size.Width}x{size.Height}");
+                    }
                 }
             }
 
@@ -119,14 +149,31 @@ namespace UGTLive
                 graphics.Clear(Color.Navy);
                 graphics.DrawString("test", SystemFonts.DefaultFont, Brushes.White, new PointF(10, 10));
             }
-            OpenAIImagePreparation prepared = OpenAIAllInOneImageNormalizer.Prepare(sample);
-            var successHandler = new ContractHandler(prepared.PngBytes, HttpStatusCode.OK);
+            const int contractInputMaxEdge = 256;
+            const int contractOutputPixels = OpenAIAllInOneImageNormalizer.MinimumPixels;
+            OpenAIImagePreparation prepared = OpenAIAllInOneImageNormalizer.Prepare(
+                sample,
+                contractInputMaxEdge,
+                contractOutputPixels);
+            byte[] generatedResponse = CreateSolidPng(prepared.RequestedOutputSize);
+            var successHandler = new ContractHandler(
+                generatedResponse,
+                HttpStatusCode.OK,
+                prepared.ApiSize);
             var service = new OpenAIAllInOneImageService(new HttpClient(successHandler));
             OpenAIAllInOneResult result = await service.TranslateImageAsync(
                 sample, "Japanese", "English", "contract-secret", "gpt-image-2",
-                OpenAIAllInOneQuality.Medium, null, CancellationToken.None);
+                OpenAIAllInOneQuality.Medium, contractInputMaxEdge, contractOutputPixels,
+                null, CancellationToken.None);
             if (result.RequestId != "contract-request")
                 failures.Add("Response request ID metadata was not preserved.");
+            if (result.InputSize != prepared.InputSize ||
+                result.RequestedOutputSize != prepared.RequestedOutputSize ||
+                result.ReceivedOutputSize != prepared.RequestedOutputSize ||
+                result.RestoredSize != sample.Size)
+            {
+                failures.Add("Input, requested, received, or restored dimension metadata was incorrect.");
+            }
             using (var outputStream = new MemoryStream(result.ImageBytes, writable: false))
             using (var output = new Bitmap(outputStream))
             {
@@ -152,7 +199,7 @@ namespace UGTLive
             try
             {
                 var unauthorized = new OpenAIAllInOneImageService(new HttpClient(new ContractHandler(Array.Empty<byte>(), HttpStatusCode.Unauthorized)));
-                await unauthorized.TranslateImageAsync(sample, "Japanese", "English", "bad", "gpt-image-2", OpenAIAllInOneQuality.Medium, null, CancellationToken.None);
+                await unauthorized.TranslateImageAsync(sample, "Japanese", "English", "bad", "gpt-image-2", OpenAIAllInOneQuality.Medium, 1024, contractOutputPixels, null, CancellationToken.None);
                 failures.Add("Unauthorized response did not throw.");
             }
             catch (OpenAIAllInOneException ex) when (ex.StatusCode == HttpStatusCode.Unauthorized)
@@ -168,7 +215,7 @@ namespace UGTLive
                 try
                 {
                     var failing = new OpenAIAllInOneImageService(new HttpClient(new ContractHandler(Array.Empty<byte>(), statusCode)));
-                    await failing.TranslateImageAsync(sample, "Japanese", "English", "contract-secret", "gpt-image-2", OpenAIAllInOneQuality.Medium, null, CancellationToken.None);
+                    await failing.TranslateImageAsync(sample, "Japanese", "English", "contract-secret", "gpt-image-2", OpenAIAllInOneQuality.Medium, 1024, contractOutputPixels, null, CancellationToken.None);
                     failures.Add($"{statusCode} response did not throw.");
                 }
                 catch (OpenAIAllInOneException ex) when (
@@ -182,7 +229,7 @@ namespace UGTLive
                 var malformed = new OpenAIAllInOneImageService(new HttpClient(new RawResponseHandler(
                     HttpStatusCode.OK,
                     "{\"data\":[{\"b64_json\":\"not-base64\"}]}")));
-                await malformed.TranslateImageAsync(sample, "Japanese", "English", "contract-secret", "gpt-image-2", OpenAIAllInOneQuality.Medium, null, CancellationToken.None);
+                await malformed.TranslateImageAsync(sample, "Japanese", "English", "contract-secret", "gpt-image-2", OpenAIAllInOneQuality.Medium, 1024, contractOutputPixels, null, CancellationToken.None);
                 failures.Add("Malformed base64 response did not throw.");
             }
             catch (OpenAIAllInOneException ex) when (ex.Message.Contains("unexpected image response", StringComparison.OrdinalIgnoreCase))
@@ -191,7 +238,7 @@ namespace UGTLive
 
             try
             {
-                await service.TranslateImageAsync(sample, "Japanese", "English", string.Empty, "gpt-image-2", OpenAIAllInOneQuality.Medium, null, CancellationToken.None);
+                await service.TranslateImageAsync(sample, "Japanese", "English", string.Empty, "gpt-image-2", OpenAIAllInOneQuality.Medium, 1024, contractOutputPixels, null, CancellationToken.None);
                 failures.Add("Missing API key did not fail before sending a request.");
             }
             catch (OpenAIAllInOneException ex) when (ex.Message.Contains("API key", StringComparison.OrdinalIgnoreCase))
@@ -205,7 +252,7 @@ namespace UGTLive
                     var cancellable = new OpenAIAllInOneImageService(new HttpClient(new CancellationHandler()));
                     await cancellable.TranslateImageAsync(
                         sample, "Japanese", "English", "contract-secret", "gpt-image-2",
-                        OpenAIAllInOneQuality.Low, null, cancellation.Token);
+                        OpenAIAllInOneQuality.Low, 1024, contractOutputPixels, null, cancellation.Token);
                     failures.Add("Cancellation did not stop the image request.");
                 }
                 catch (OperationCanceledException)
@@ -231,16 +278,39 @@ namespace UGTLive
             return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
         }
 
+        private static int? GetIntArg(string[] args, string name)
+        {
+            string? value = GetArg(args, name);
+            return int.TryParse(value, out int parsed) ? parsed : null;
+        }
+
+        private static string FormatSize(Size size)
+        {
+            return $"{size.Width}x{size.Height} = {(long)size.Width * size.Height:N0} pixels";
+        }
+
+        private static byte[] CreateSolidPng(Size size)
+        {
+            using var bitmap = new Bitmap(size.Width, size.Height);
+            using (Graphics graphics = Graphics.FromImage(bitmap))
+                graphics.Clear(Color.DarkSlateBlue);
+            using var stream = new MemoryStream();
+            bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+            return stream.ToArray();
+        }
+
         private sealed class ContractHandler : HttpMessageHandler
         {
             private readonly byte[] _responseImage;
             private readonly HttpStatusCode _statusCode;
+            private readonly string? _expectedSize;
             public List<string> Failures { get; } = new();
 
-            public ContractHandler(byte[] responseImage, HttpStatusCode statusCode)
+            public ContractHandler(byte[] responseImage, HttpStatusCode statusCode, string? expectedSize = null)
             {
                 _responseImage = responseImage;
                 _statusCode = statusCode;
+                _expectedSize = expectedSize;
             }
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -257,6 +327,8 @@ namespace UGTLive
                     if (!normalizedMultipart.Contains(expected, StringComparison.OrdinalIgnoreCase))
                         Failures.Add($"Multipart request did not contain '{expected}'.");
                 }
+                if (_expectedSize != null && !normalizedMultipart.Contains(_expectedSize, StringComparison.Ordinal))
+                    Failures.Add($"Multipart request did not contain requested size '{_expectedSize}'.");
 
                 string body = _statusCode == HttpStatusCode.OK
                     ? JsonSerializer.Serialize(new { data = new[] { new { b64_json = Convert.ToBase64String(_responseImage) } } })

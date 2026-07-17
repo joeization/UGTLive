@@ -21,7 +21,20 @@ namespace UGTLive
         TranslatingAndRendering
     }
 
-    public sealed record OpenAIAllInOneResult(byte[] ImageBytes, TimeSpan Elapsed, string? RequestId);
+    public sealed record OpenAIAllInOneResult(
+        byte[] ImageBytes,
+        TimeSpan Elapsed,
+        string? RequestId,
+        Size InputSize,
+        Size RequestedOutputSize,
+        Size ReceivedOutputSize,
+        Size RestoredSize)
+    {
+        public long InputPixels => (long)InputSize.Width * InputSize.Height;
+        public long RequestedOutputPixels => (long)RequestedOutputSize.Width * RequestedOutputSize.Height;
+        public long ReceivedOutputPixels => (long)ReceivedOutputSize.Width * ReceivedOutputSize.Height;
+        public long RestoredPixels => (long)RestoredSize.Width * RestoredSize.Height;
+    }
 
     public sealed class OpenAIAllInOneException : Exception
     {
@@ -37,10 +50,13 @@ namespace UGTLive
     public sealed record OpenAIImagePreparation(
         byte[] PngBytes,
         Size OriginalSize,
-        Size PreparedSize,
-        Rectangle ContentBounds)
+        Size InputSize,
+        Size RequestedOutputSize,
+        Rectangle OutputContentBounds)
     {
-        public string ApiSize => $"{PreparedSize.Width}x{PreparedSize.Height}";
+        public string ApiSize => $"{RequestedOutputSize.Width}x{RequestedOutputSize.Height}";
+        public Size PreparedSize => RequestedOutputSize;
+        public Rectangle ContentBounds => OutputContentBounds;
     }
 
     public static class OpenAIAllInOneImageNormalizer
@@ -50,7 +66,10 @@ namespace UGTLive
         public const int MaximumPixels = 8_294_400;
         public const double MaximumAspectRatio = 3.0;
 
-        public static OpenAIImagePreparation Prepare(Bitmap source)
+        public static OpenAIImagePreparation Prepare(
+            Bitmap source,
+            int inputMaxEdge = 1024,
+            int outputTargetPixels = MinimumPixels)
         {
             ArgumentNullException.ThrowIfNull(source);
             if (source.Width < 1 || source.Height < 1)
@@ -63,20 +82,13 @@ namespace UGTLive
             else if ((double)canvasHeight / canvasWidth > MaximumAspectRatio)
                 canvasWidth = (int)Math.Ceiling(canvasHeight / MaximumAspectRatio);
 
-            Size preparedSize = CalculatePreparedSize(canvasWidth, canvasHeight);
-            double scaleX = (double)preparedSize.Width / canvasWidth;
-            double scaleY = (double)preparedSize.Height / canvasHeight;
-            int contentWidth = Math.Max(1, (int)Math.Round(source.Width * scaleX));
-            int contentHeight = Math.Max(1, (int)Math.Round(source.Height * scaleY));
-            contentWidth = Math.Min(contentWidth, preparedSize.Width);
-            contentHeight = Math.Min(contentHeight, preparedSize.Height);
-            var contentBounds = new Rectangle(
-                (preparedSize.Width - contentWidth) / 2,
-                (preparedSize.Height - contentHeight) / 2,
-                contentWidth,
-                contentHeight);
+            var paddedCanvasSize = new Size(canvasWidth, canvasHeight);
+            Size inputSize = CalculateInputSize(canvasWidth, canvasHeight, inputMaxEdge);
+            Size requestedOutputSize = CalculatePreparedSize(canvasWidth, canvasHeight, outputTargetPixels);
+            Rectangle inputContentBounds = CalculateContentBounds(source.Size, paddedCanvasSize, inputSize);
+            Rectangle outputContentBounds = CalculateContentBounds(source.Size, paddedCanvasSize, requestedOutputSize);
 
-            using var prepared = new Bitmap(preparedSize.Width, preparedSize.Height, PixelFormat.Format32bppArgb);
+            using var prepared = new Bitmap(inputSize.Width, inputSize.Height, PixelFormat.Format32bppArgb);
             using (Graphics graphics = Graphics.FromImage(prepared))
             {
                 graphics.Clear(Color.FromArgb(255, 127, 127, 127));
@@ -84,7 +96,7 @@ namespace UGTLive
                 graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 graphics.SmoothingMode = SmoothingMode.HighQuality;
-                graphics.DrawImage(source, contentBounds);
+                graphics.DrawImage(source, inputContentBounds);
             }
 
             using var stream = new MemoryStream();
@@ -92,8 +104,9 @@ namespace UGTLive
             return new OpenAIImagePreparation(
                 stream.ToArray(),
                 source.Size,
-                preparedSize,
-                contentBounds);
+                inputSize,
+                requestedOutputSize,
+                outputContentBounds);
         }
 
         public static byte[] Restore(byte[] generatedImageBytes, OpenAIImagePreparation preparation)
@@ -105,13 +118,13 @@ namespace UGTLive
             {
                 using var input = new MemoryStream(generatedImageBytes, writable: false);
                 using var decoded = new Bitmap(input);
-                using var normalized = new Bitmap(preparation.PreparedSize.Width, preparation.PreparedSize.Height, PixelFormat.Format32bppArgb);
+                using var normalized = new Bitmap(preparation.RequestedOutputSize.Width, preparation.RequestedOutputSize.Height, PixelFormat.Format32bppArgb);
                 using (Graphics graphics = Graphics.FromImage(normalized))
                 {
                     graphics.CompositingQuality = CompositingQuality.HighQuality;
                     graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                     graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                    graphics.DrawImage(decoded, new Rectangle(Point.Empty, preparation.PreparedSize));
+                    graphics.DrawImage(decoded, new Rectangle(Point.Empty, preparation.RequestedOutputSize));
                 }
 
                 using var restored = new Bitmap(preparation.OriginalSize.Width, preparation.OriginalSize.Height, PixelFormat.Format32bppArgb);
@@ -123,7 +136,7 @@ namespace UGTLive
                     graphics.DrawImage(
                         normalized,
                         new Rectangle(Point.Empty, preparation.OriginalSize),
-                        preparation.ContentBounds,
+                        preparation.OutputContentBounds,
                         GraphicsUnit.Pixel);
                 }
 
@@ -137,20 +150,38 @@ namespace UGTLive
             }
         }
 
-        public static Size CalculatePreparedSize(int width, int height)
+        public static Size CalculateInputSize(int width, int height, int maxEdge)
         {
             if (width < 1 || height < 1)
                 throw new ArgumentOutOfRangeException(nameof(width), "Image dimensions must be positive.");
 
-            double scale = Math.Min(1.0, (double)MaximumEdge / Math.Max(width, height));
-            double pixelsAtScale = width * scale * height * scale;
-            if (pixelsAtScale < MinimumPixels)
-                scale *= Math.Sqrt(MinimumPixels / pixelsAtScale);
-            else if (pixelsAtScale > MaximumPixels)
-                scale *= Math.Sqrt(MaximumPixels / pixelsAtScale);
+            maxEdge = Math.Clamp(maxEdge, 256, MaximumEdge);
+            double scale = Math.Min(1.0, (double)maxEdge / Math.Max(width, height));
+            int targetWidth = Math.Clamp(RoundToMultiple(width * scale, 16), 16, maxEdge);
+            int targetHeight = Math.Clamp(RoundToMultiple(height * scale, 16), 16, maxEdge);
 
-            int targetWidth = RoundToMultiple(width * scale, 16);
-            int targetHeight = RoundToMultiple(height * scale, 16);
+            if ((double)targetWidth / targetHeight > MaximumAspectRatio)
+                targetHeight = Math.Min(maxEdge, CeilingToMultiple(targetWidth / MaximumAspectRatio, 16));
+            else if ((double)targetHeight / targetWidth > MaximumAspectRatio)
+                targetWidth = Math.Min(maxEdge, CeilingToMultiple(targetHeight / MaximumAspectRatio, 16));
+
+            return new Size(targetWidth, targetHeight);
+        }
+
+        public static Size CalculatePreparedSize(
+            int width,
+            int height,
+            int targetPixels = MinimumPixels)
+        {
+            if (width < 1 || height < 1)
+                throw new ArgumentOutOfRangeException(nameof(width), "Image dimensions must be positive.");
+
+            targetPixels = Math.Clamp(targetPixels, MinimumPixels, MaximumPixels);
+            double scale = Math.Sqrt((double)targetPixels / ((long)width * height));
+            scale = Math.Min(scale, (double)MaximumEdge / Math.Max(width, height));
+
+            int targetWidth = CeilingToMultiple(width * scale, 16);
+            int targetHeight = CeilingToMultiple(height * scale, 16);
             targetWidth = Math.Clamp(targetWidth, 16, MaximumEdge);
             targetHeight = Math.Clamp(targetHeight, 16, MaximumEdge);
 
@@ -180,6 +211,35 @@ namespace UGTLive
             }
 
             return new Size(targetWidth, targetHeight);
+        }
+
+        public static Size ReadImageSize(byte[] imageBytes)
+        {
+            ArgumentNullException.ThrowIfNull(imageBytes);
+            try
+            {
+                using var stream = new MemoryStream(imageBytes, writable: false);
+                using var decoded = new Bitmap(stream);
+                return decoded.Size;
+            }
+            catch (Exception ex) when (ex is ArgumentException or ExternalException)
+            {
+                throw new OpenAIAllInOneException("OpenAI returned image data that could not be decoded.", innerException: ex);
+            }
+        }
+
+        private static Rectangle CalculateContentBounds(Size sourceSize, Size paddedCanvasSize, Size targetSize)
+        {
+            double scale = Math.Min(
+                (double)targetSize.Width / paddedCanvasSize.Width,
+                (double)targetSize.Height / paddedCanvasSize.Height);
+            int contentWidth = Math.Clamp((int)Math.Round(sourceSize.Width * scale), 1, targetSize.Width);
+            int contentHeight = Math.Clamp((int)Math.Round(sourceSize.Height * scale), 1, targetSize.Height);
+            return new Rectangle(
+                (targetSize.Width - contentWidth) / 2,
+                (targetSize.Height - contentHeight) / 2,
+                contentWidth,
+                contentHeight);
         }
 
         private static int RoundToMultiple(double value, int multiple)
@@ -221,6 +281,8 @@ namespace UGTLive
             string apiKey,
             string model,
             OpenAIAllInOneQuality quality,
+            int inputMaxEdge,
+            int outputTargetPixels,
             IProgress<OpenAIAllInOneStage>? progress,
             CancellationToken cancellationToken)
         {
@@ -229,7 +291,10 @@ namespace UGTLive
 
             var stopwatch = Stopwatch.StartNew();
             progress?.Report(OpenAIAllInOneStage.Preparing);
-            OpenAIImagePreparation preparation = OpenAIAllInOneImageNormalizer.Prepare(source);
+            OpenAIImagePreparation preparation = OpenAIAllInOneImageNormalizer.Prepare(
+                source,
+                inputMaxEdge,
+                outputTargetPixels);
             progress?.Report(OpenAIAllInOneStage.TranslatingAndRendering);
 
             using var request = new HttpRequestMessage(HttpMethod.Post, ImageEditEndpoint);
@@ -270,10 +335,18 @@ namespace UGTLive
                     throw CreateApiException(response.StatusCode, responseBody);
 
                 byte[] generatedBytes = ParseImageBytes(responseBody);
+                Size receivedOutputSize = OpenAIAllInOneImageNormalizer.ReadImageSize(generatedBytes);
                 byte[] restoredBytes = OpenAIAllInOneImageNormalizer.Restore(generatedBytes, preparation);
                 stopwatch.Stop();
                 string? requestId = response.Headers.TryGetValues("x-request-id", out var values) ? values.FirstOrDefault() : null;
-                return new OpenAIAllInOneResult(restoredBytes, stopwatch.Elapsed, requestId);
+                return new OpenAIAllInOneResult(
+                    restoredBytes,
+                    stopwatch.Elapsed,
+                    requestId,
+                    preparation.InputSize,
+                    preparation.RequestedOutputSize,
+                    receivedOutputSize,
+                    preparation.OriginalSize);
             }
         }
 

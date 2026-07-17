@@ -19,6 +19,9 @@ namespace UGTLive
         private OpenAIAllInOneStage _openAIAllInOneStage;
         private BitmapSource? _openAIAllInOneSourceImageSource;
         private BitmapSource? _openAIAllInOneImageSource;
+        private OpenAIAllInOneResult? _openAIAllInOneLastResult;
+
+        public OpenAIAllInOneResult? GetLastOpenAIAllInOneResult() => _openAIAllInOneLastResult;
 
         public void OnSnapshotProcessingModeChanged()
         {
@@ -73,6 +76,8 @@ namespace UGTLive
                 string apiKey = ConfigManager.Instance.GetOpenAIAllInOneApiKey();
                 string model = ConfigManager.Instance.GetOpenAIAllInOneModel();
                 OpenAIAllInOneQuality quality = ConfigManager.Instance.GetOpenAIAllInOneQuality();
+                int inputMaxEdge = ConfigManager.Instance.GetOpenAIAllInOneInputMaxEdge();
+                int outputTargetPixels = ConfigManager.Instance.GetOpenAIAllInOneOutputTargetPixels();
                 OpenAIAllInOneResult result = await Task.Run(
                     () => _openAIAllInOneService.TranslateImageAsync(
                         bitmap,
@@ -81,6 +86,8 @@ namespace UGTLive
                         apiKey,
                         model,
                         quality,
+                        inputMaxEdge,
+                        outputTargetPixels,
                         progress,
                         cancellationToken),
                     cancellationToken);
@@ -95,13 +102,18 @@ namespace UGTLive
                         return;
 
                     _openAIAllInOneImageSource = image;
+                    _openAIAllInOneLastResult = result;
                     MonitorWindow.Instance.SetOpenAIAllInOneTranslatedImage(image);
                     SetOpenAIAllInOneComparisonMode(OverlayMode.Translated);
                     UpdateOpenAIAllInOneOverlayVisibility();
                     StopOpenAIAllInOneStatusTimer();
                     double elapsedSeconds = result.Elapsed.TotalSeconds;
-                    SetOpenAIAllInOneStatus($"Translated image ready - {elapsedSeconds:F1} seconds", showProgress: false);
-                    _toolbarWindow?.ShowOpenAIAllInOneResult(elapsedSeconds, showingTranslated: true);
+                    SetOpenAIAllInOneStatus(
+                        $"Ready - {elapsedSeconds:F1}s | sent {FormatImageMetrics(result.InputSize)} | received {FormatImageMetrics(result.ReceivedOutputSize)}",
+                        showProgress: false);
+                    _toolbarWindow?.ShowOpenAIAllInOneResult(result, showingTranslated: true);
+                    if (SettingsWindow.IsOpenAndVisible())
+                        SettingsWindow.Instance.UpdateOpenAIAllInOneMetrics(result);
                     OnSnapshotComplete(true);
                 });
             }
@@ -260,6 +272,12 @@ namespace UGTLive
         private static string FormatOperationElapsed(TimeSpan elapsed)
         {
             return $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
+        }
+
+        private static string FormatImageMetrics(System.Drawing.Size size)
+        {
+            long pixels = (long)size.Width * size.Height;
+            return $"{size.Width}x{size.Height} ({pixels:N0} px)";
         }
 
         private static BitmapSource CreateFrozenBitmapSource(byte[] imageBytes)

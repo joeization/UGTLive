@@ -50,7 +50,31 @@ namespace UGTLive
                 }
             }
 
+            SelectOpenAIAllInOneNumericOption(
+                openAiAllInOneInputMaxEdgeComboBox,
+                ConfigManager.Instance.GetOpenAIAllInOneInputMaxEdge());
+            SelectOpenAIAllInOneNumericOption(
+                openAiAllInOneOutputPixelsComboBox,
+                ConfigManager.Instance.GetOpenAIAllInOneOutputTargetPixels());
+
+            OpenAIAllInOneResult? lastResult = MainWindow.Instance?.GetLastOpenAIAllInOneResult();
+            if (lastResult != null)
+                UpdateOpenAIAllInOneMetrics(lastResult);
+
             UpdateOpenAIAllInOneSettingsVisibility();
+        }
+
+        private static void SelectOpenAIAllInOneNumericOption(ComboBox comboBox, int value)
+        {
+            foreach (ComboBoxItem item in comboBox.Items)
+            {
+                if (int.TryParse(item.Tag?.ToString(), out int optionValue) && optionValue == value)
+                {
+                    comboBox.SelectedItem = item;
+                    return;
+                }
+            }
+            comboBox.SelectedIndex = 0;
         }
 
         private void SnapshotProcessingModeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -88,6 +112,45 @@ namespace UGTLive
                 !Enum.TryParse(item.Tag?.ToString(), ignoreCase: true, out OpenAIAllInOneQuality quality))
                 return;
             ConfigManager.Instance.SetOpenAIAllInOneQuality(quality);
+        }
+
+        private void OpenAiAllInOneInputMaxEdgeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || openAiAllInOneInputMaxEdgeComboBox.SelectedItem is not ComboBoxItem item ||
+                !int.TryParse(item.Tag?.ToString(), out int maxEdge))
+                return;
+            ConfigManager.Instance.SetOpenAIAllInOneInputMaxEdge(maxEdge);
+        }
+
+        private void OpenAiAllInOneOutputPixelsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || openAiAllInOneOutputPixelsComboBox.SelectedItem is not ComboBoxItem item ||
+                !int.TryParse(item.Tag?.ToString(), out int pixels))
+                return;
+            ConfigManager.Instance.SetOpenAIAllInOneOutputTargetPixels(pixels);
+        }
+
+        public void UpdateOpenAIAllInOneMetrics(OpenAIAllInOneResult result)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => UpdateOpenAIAllInOneMetrics(result));
+                return;
+            }
+
+            openAiAllInOneMetricsText.Text =
+                "Last completed request:\n" +
+                $"Uploaded input: {FormatOpenAIAllInOneMetrics(result.InputSize)}\n" +
+                $"Requested output: {FormatOpenAIAllInOneMetrics(result.RequestedOutputSize)}\n" +
+                $"API returned: {FormatOpenAIAllInOneMetrics(result.ReceivedOutputSize)}\n" +
+                $"Restored overlay: {FormatOpenAIAllInOneMetrics(result.RestoredSize)}\n" +
+                $"Elapsed: {result.Elapsed.TotalSeconds:F1} seconds";
+        }
+
+        private static string FormatOpenAIAllInOneMetrics(System.Drawing.Size size)
+        {
+            long pixels = (long)size.Width * size.Height;
+            return $"{size.Width} x {size.Height} = {pixels:N0} pixels";
         }
 
         private async void OpenAiAllInOneTestAccessButton_Click(object sender, RoutedEventArgs e)

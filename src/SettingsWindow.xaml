@@ -264,6 +264,11 @@
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
                                         <TextBlock Text="OpenAI API Key:" Grid.Row="0" Grid.Column="0" VerticalAlignment="Top" Margin="0,8,10,0"/>
@@ -297,9 +302,46 @@
                                             <ComboBoxItem Content="High (slowest / highest cost)" Tag="High"/>
                                         </ComboBox>
 
-                                        <ProgressBar x:Name="openAiAllInOneTestProgressBar" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                        <TextBlock Text="Uploaded input size:" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <ComboBox x:Name="openAiAllInOneInputMaxEdgeComboBox" Grid.Row="3" Grid.Column="1" Margin="0,5"
+                                                  SelectionChanged="OpenAiAllInOneInputMaxEdgeComboBox_SelectionChanged">
+                                            <ComboBoxItem Content="256 px max edge (very low; small text may fail)" Tag="256"/>
+                                            <ComboBoxItem Content="512 px max edge (low)" Tag="512"/>
+                                            <ComboBoxItem Content="768 px max edge" Tag="768"/>
+                                            <ComboBoxItem Content="1024 px max edge (recommended)" Tag="1024"/>
+                                            <ComboBoxItem Content="1536 px max edge" Tag="1536"/>
+                                            <ComboBoxItem Content="2048 px max edge" Tag="2048"/>
+                                            <ComboBoxItem Content="3840 px max edge (maximum)" Tag="3840"/>
+                                        </ComboBox>
+
+                                        <TextBlock Text="Generated output budget:" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <ComboBox x:Name="openAiAllInOneOutputPixelsComboBox" Grid.Row="4" Grid.Column="1" Margin="0,5"
+                                                  SelectionChanged="OpenAiAllInOneOutputPixelsComboBox_SelectionChanged">
+                                            <ComboBoxItem Content="Minimum - 655,360 pixels (recommended)" Tag="655360"/>
+                                            <ComboBoxItem Content="1 MP - 1,048,576 pixels" Tag="1048576"/>
+                                            <ComboBoxItem Content="2 MP - 2,073,600 pixels" Tag="2073600"/>
+                                            <ComboBoxItem Content="3.7 MP - 3,686,400 pixels" Tag="3686400"/>
+                                            <ComboBoxItem Content="Maximum - 8,294,400 pixels (experimental)" Tag="8294400"/>
+                                        </ComboBox>
+
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,4,0,3"
+                                                   TextWrapping="Wrap" Foreground="#FF555555"
+                                                   Text="Input and output are sized independently while preserving aspect ratio. Actual dimensions are rounded to multiples of 16. OpenAI requires generated output to contain at least 655,360 pixels, so it cannot be reduced below the Minimum option."/>
+
+                                        <Border Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Background="#FFEAF2F8"
+                                                BorderBrush="#FF7A9BB8" BorderThickness="1" CornerRadius="3" Padding="7" Margin="0,4">
+                                            <TextBlock TextWrapping="Wrap" Foreground="#FF203040"
+                                                       Text="Thinking / reasoning: gpt-image-2 Image Edits does not expose a thinking-effort control. Quality and image dimensions are the supported speed, cost, and fidelity controls."/>
+                                        </Border>
+
+                                        <TextBox x:Name="openAiAllInOneMetricsText" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2"
+                                                 Margin="0,4" Padding="6" IsReadOnly="True" IsReadOnlyCaretVisible="True"
+                                                 TextWrapping="Wrap" Background="#FFF7F7F7" BorderBrush="#FFBBBBBB"
+                                                 Text="Last request pixel counts will appear here after a completed All In One Snap."/>
+
+                                        <ProgressBar x:Name="openAiAllInOneTestProgressBar" Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2"
                                                      Height="4" Margin="0,5" IsIndeterminate="True" Visibility="Collapsed"/>
-                                        <TextBlock x:Name="openAiAllInOneTestResultText" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                        <TextBlock x:Name="openAiAllInOneTestResultText" Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2"
                                                    Margin="0,3,0,0" TextWrapping="Wrap" Foreground="Gray"/>
                                     </Grid>
                                 </StackPanel>

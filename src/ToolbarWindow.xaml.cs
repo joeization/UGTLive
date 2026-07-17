@@ -255,9 +255,15 @@ namespace UGTLive
             _isInitialized = true;
         }
 
-        public void ShowOpenAIAllInOneResult(double elapsedSeconds, bool showingTranslated)
+        public void ShowOpenAIAllInOneResult(OpenAIAllInOneResult result, bool showingTranslated)
         {
-            allInOneElapsedText.Text = $"Completed: {elapsedSeconds:F1}s";
+            allInOneElapsedText.Text = $"Completed: {result.Elapsed.TotalSeconds:F1}s";
+            allInOnePixelText.Text = $"In: {result.InputSize.Width}x{result.InputSize.Height}\nOut: {result.ReceivedOutputSize.Width}x{result.ReceivedOutputSize.Height}";
+            allInOnePixelText.ToolTip =
+                $"Uploaded: {FormatImageMetrics(result.InputSize)}\n" +
+                $"Requested output: {FormatImageMetrics(result.RequestedOutputSize)}\n" +
+                $"API returned: {FormatImageMetrics(result.ReceivedOutputSize)}\n" +
+                $"Restored display: {FormatImageMetrics(result.RestoredSize)}";
             allInOneResultPanel.Visibility = Visibility.Visible;
             SyncOpenAIAllInOneComparison(showingTranslated);
         }
@@ -270,6 +276,12 @@ namespace UGTLive
         public void SyncOpenAIAllInOneComparison(bool showingTranslated)
         {
             allInOneComparisonButton.Content = showingTranslated ? "Show Original" : "Show Translated";
+        }
+
+        private static string FormatImageMetrics(System.Drawing.Size size)
+        {
+            long pixels = (long)size.Width * size.Height;
+            return $"{size.Width}x{size.Height} ({pixels:N0} px)";
         }
 
         public void SyncPassthrough(bool enabled)

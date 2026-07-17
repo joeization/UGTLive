@@ -301,6 +301,8 @@ namespace UGTLive
             _configValues[OPENAI_ALL_IN_ONE_API_KEY] = "";
             _configValues[OPENAI_ALL_IN_ONE_MODEL] = "gpt-image-2";
             _configValues[OPENAI_ALL_IN_ONE_QUALITY] = "medium";
+            _configValues[OPENAI_ALL_IN_ONE_INPUT_MAX_EDGE] = "1024";
+            _configValues[OPENAI_ALL_IN_ONE_OUTPUT_TARGET_PIXELS] = "655360";
             _configValues[OLLAMA_MODEL] = "gemma3:12b";
             _configValues[SOURCE_LANGUAGE] = "ja";
             _configValues[TARGET_LANGUAGE] = "en";

@@ -24,6 +24,8 @@ namespace UGTLive
         public const string OPENAI_ALL_IN_ONE_API_KEY = "openai_all_in_one_api_key";
         public const string OPENAI_ALL_IN_ONE_MODEL = "openai_all_in_one_model";
         public const string OPENAI_ALL_IN_ONE_QUALITY = "openai_all_in_one_quality";
+        public const string OPENAI_ALL_IN_ONE_INPUT_MAX_EDGE = "openai_all_in_one_input_max_edge";
+        public const string OPENAI_ALL_IN_ONE_OUTPUT_TARGET_PIXELS = "openai_all_in_one_output_target_pixels";
         public const string OLLAMA_URL = "ollama_url";
         public const string OLLAMA_PORT = "ollama_port";
         public const string OLLAMA_MODEL = "ollama_model";
