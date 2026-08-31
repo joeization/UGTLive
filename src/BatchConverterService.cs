@@ -646,6 +646,19 @@ namespace UGTLive
                     }
                 };
                 _offscreenWebView.CoreWebView2.WebMessageReceived += handler;
+                // Ensure postOverlayLayout is invoked even if page load events don't fire as expected:
+                EventHandler<CoreWebView2NavigationCompletedEventArgs>? navHandler = null;
+                navHandler = (s, e) =>
+                {
+                    try
+                    {
+                        _offscreenWebView.CoreWebView2.NavigationCompleted -= navHandler;
+                        // Ask the page to post layout back to host. Silent try/catch in JS.
+                        _offscreenWebView.CoreWebView2.ExecuteScriptAsync("(function(){ try{ if(window.postOverlayLayout) postOverlayLayout(); else if(window.postOverlayLayout===undefined && window.postOverlayLayout!=null) postOverlayLayout(); } catch(e){} })();");
+                    }
+                    catch { }
+                };
+                _offscreenWebView.CoreWebView2.NavigationCompleted += navHandler;
                 _offscreenWebView.CoreWebView2.Navigate(new Uri(tempHtmlPath).AbsoluteUri);
 
                 var timeout = Task.Delay(10000);
@@ -659,6 +672,20 @@ namespace UGTLive
                 else
                 {
                     layoutJson = await layoutTcs.Task;
+                }
+
+                // If we timed out, try forcing the JS again and wait a bit longer
+                if (string.IsNullOrEmpty(layoutJson))
+                {
+                    try
+                    {
+                        await _offscreenWebView.CoreWebView2.ExecuteScriptAsync("try{ if(window.postOverlayLayout) postOverlayLayout(); }catch(e){};");
+                        var retryTimeout = Task.Delay(5000);
+                        var retryFinished = await Task.WhenAny(layoutTcs.Task, retryTimeout);
+                        if (retryFinished != retryTimeout)
+                            layoutJson = await layoutTcs.Task;
+                    }
+                    catch { }
                 }
 
                 if (string.IsNullOrEmpty(layoutJson))
