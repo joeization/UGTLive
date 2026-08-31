@@ -168,7 +168,7 @@ namespace UGTLive
             html.AppendLine("}");
             html.AppendLine(".vertical-text {");
             html.AppendLine("  writing-mode: vertical-rl;");
-            html.AppendLine("  text-orientation: upright;");
+            html.AppendLine("  text-orientation: mixed;");
             html.AppendLine("  align-items: flex-start;");
             html.AppendLine("  justify-content: center;");
             html.AppendLine("}");
@@ -716,7 +716,7 @@ namespace UGTLive
                         // Determine which text to show
                         string textToShow;
                         bool isTranslated = false;
-                        string displayOrientation = textObj.TextOrientation;
+                        string displayOrientation = "vertical";
                         
                         if (_currentOverlayMode == OverlayMode.Translated && !string.IsNullOrEmpty(textObj.TextTranslated))
                         {
