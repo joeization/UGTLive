@@ -594,7 +594,8 @@ namespace UGTLive
                 // If the image is larger, scale content down to fit the viewport.
                 double maxLogicalW = SystemParameters.VirtualScreenWidth;
                 double maxLogicalH = SystemParameters.VirtualScreenHeight;
-                double fitScale = Math.Min(1.0, Math.Min(maxLogicalW / neededLogicalW, maxLogicalH / neededLogicalH));
+                // double fitScale = Math.Min(1.0, Math.Min(maxLogicalW / neededLogicalW, maxLogicalH / neededLogicalH));
+                double fitScale = 1;
 
                 _offscreenWindow.Width = neededLogicalW * fitScale;
                 _offscreenWindow.Height = neededLogicalH * fitScale;
