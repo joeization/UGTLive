@@ -723,8 +723,8 @@ namespace UGTLive
 
                                 // Prepare font
                                 string ff = ExtractFirstFontFamily(fontFamily);
-                                FontStyle fs = fontWeight.ToLower().Contains("bold") ? FontStyle.Bold : FontStyle.Regular;
-                                using (var font = new System.Drawing.Font(ff, Math.Max(6f, fontSizePx), fs, GraphicsUnit.Pixel))
+                                System.Drawing.FontStyle fs = fontWeight.ToLower().Contains("bold") ? System.Drawing.FontStyle.Bold : System.Drawing.FontStyle.Regular;
+                                using (var font = new System.Drawing.Font(ff, Math.Max(6f, fontSizePx), fs, System.Drawing.GraphicsUnit.Pixel))
                                 using (var brush = new SolidBrush(drawTextColor))
                                 {
                                     var layoutRect = new RectangleF(leftPx + 2, topPx + 2, Math.Max(1, wPx - 4), Math.Max(1, hPx - 4));

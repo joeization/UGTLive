@@ -955,7 +955,7 @@ namespace UGTLive
             html.AppendLine("        orientation: o.getAttribute('data-orientation') || 'horizontal' ");
             html.AppendLine("      });");
             html.AppendLine("    }");
-            html.AppendLine(FormattableString.Invariant("    const payload = { type: 'overlayLayout', cssScale: " + cssScale.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", overlays: items }; "));
+            html.AppendLine("    const payload = { type: 'overlayLayout', cssScale: " +cssScale.ToString(System.Globalization.CultureInfo.InvariantCulture) +", overlays: items }; ");
             html.AppendLine("    if (window.chrome && window.chrome.webview) { window.chrome.webview.postMessage(JSON.stringify(payload)); }");
             html.AppendLine("  } catch(e) { console.error('postOverlayLayout error', e); }");
             html.AppendLine("}");
