@@ -617,41 +617,154 @@ namespace UGTLive
                 tempHtmlPath = Path.Combine(tempDir, $"render_{Guid.NewGuid():N}.html");
                 File.WriteAllText(tempHtmlPath, html, Encoding.UTF8);
 
-                var readyTcs = new TaskCompletionSource<bool>();
+                // Instead of capturing the WebView bitmap (which is limited by viewport size),
+                // request the WebView compute final overlay layout and return layout metrics.
+                // Then compose the overlay back onto the original bitmap in C# so the final
+                // image retains the source bitmap's original pixel dimensions.
+                var layoutTcs = new TaskCompletionSource<string?>();
                 EventHandler<CoreWebView2WebMessageReceivedEventArgs> handler = null!;
                 handler = (s, e) =>
                 {
-                    if (e.TryGetWebMessageAsString() == "screenshotReady")
+                    try
+                    {
+                        string msg = e.TryGetWebMessageAsString();
+                        if (!string.IsNullOrEmpty(msg))
+                        {
+                            // Expect a JSON payload with type 'overlayLayout'
+                            if (msg.Contains("\"type\":\"overlayLayout\""))
+                            {
+                                _offscreenWebView.CoreWebView2.WebMessageReceived -= handler;
+                                layoutTcs.TrySetResult(msg);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
                     {
                         _offscreenWebView.CoreWebView2.WebMessageReceived -= handler;
-                        readyTcs.TrySetResult(true);
+                        layoutTcs.TrySetResult(null);
+                        log($"Error processing webview message: {ex.Message}");
                     }
                 };
                 _offscreenWebView.CoreWebView2.WebMessageReceived += handler;
                 _offscreenWebView.CoreWebView2.Navigate(new Uri(tempHtmlPath).AbsoluteUri);
 
                 var timeout = Task.Delay(10000);
-                if (await Task.WhenAny(readyTcs.Task, timeout) == timeout)
+                var finished = await Task.WhenAny(layoutTcs.Task, timeout);
+                string? layoutJson = null;
+                if (finished == timeout)
                 {
                     _offscreenWebView.CoreWebView2.WebMessageReceived -= handler;
-                    log("Warning: WebView2 render timed out waiting for screenshotReady signal.");
+                    log("Warning: WebView2 render timed out waiting for overlay layout.");
                 }
-
-                await Task.Delay(200);
-
-                BitmapImage overlayBitmap;
-                using (var ms = new MemoryStream())
+                else
                 {
-                    await _offscreenWebView.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
-                    ms.Position = 0;
-                    overlayBitmap = new BitmapImage();
-                    overlayBitmap.BeginInit();
-                    overlayBitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    overlayBitmap.StreamSource = ms;
-                    overlayBitmap.EndInit();
+                    layoutJson = await layoutTcs.Task;
                 }
-                overlayBitmap.Freeze();
-                return overlayBitmap;
+
+                if (string.IsNullOrEmpty(layoutJson))
+                {
+                    log("No layout data from WebView2.");
+                    return null;
+                }
+
+                // Parse layout JSON and composite overlays onto the original bitmap
+                try
+                {
+                    using var doc = JsonDocument.Parse(layoutJson);
+                    var root = doc.RootElement;
+                    if (!root.TryGetProperty("overlays", out JsonElement overlaysEl))
+                        return null;
+
+                    double cssScaleFromJs = 1.0;
+                    if (root.TryGetProperty("cssScale", out var cssScaleEl) && cssScaleEl.ValueKind == JsonValueKind.Number)
+                        cssScaleFromJs = cssScaleEl.GetDouble();
+
+                    // Create a copy of the original bitmap to draw onto
+                    Bitmap resultBmp = new Bitmap(sourceBitmap.Width, sourceBitmap.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                    using (var g = Graphics.FromImage(resultBmp))
+                    {
+                        g.Clear(System.Drawing.Color.Transparent);
+                        g.DrawImage(sourceBitmap, 0, 0, sourceBitmap.Width, sourceBitmap.Height);
+                        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
+
+                        foreach (var item in overlaysEl.EnumerateArray())
+                        {
+                            try
+                            {
+                                string id = item.GetProperty("id").GetString() ?? "";
+                                double leftCss = item.GetProperty("left").GetDouble();
+                                double topCss = item.GetProperty("top").GetDouble();
+                                double wCss = item.GetProperty("width").GetDouble();
+                                double hCss = item.GetProperty("height").GetDouble();
+                                double fontSizeCss = item.GetProperty("fontSize").GetDouble();
+                                string text = item.GetProperty("text").GetString() ?? "";
+                                string fontFamily = item.GetProperty("fontFamily").GetString() ?? "Segoe UI";
+                                string fontWeight = item.GetProperty("fontWeight").GetString() ?? "normal";
+                                string textColor = item.GetProperty("textColor").GetString() ?? "rgba(255,255,255,1)";
+                                string bgColor = item.GetProperty("bgColor").GetString() ?? "rgba(0,0,0,0.6)";
+
+                                // Map CSS (logical) coordinates back to original image pixels
+                                float leftPx = (float)(leftCss * cssScaleFromJs);
+                                float topPx = (float)(topCss * cssScaleFromJs);
+                                float wPx = (float)(wCss * cssScaleFromJs);
+                                float hPx = (float)(hCss * cssScaleFromJs);
+                                float fontSizePx = (float)(fontSizeCss * cssScaleFromJs);
+
+                                // Parse colors from rgba(...) string
+                                System.Drawing.Color drawTextColor = ParseRgbaCssToColor(textColor, System.Drawing.Color.White);
+                                System.Drawing.Color drawBgColor = ParseRgbaCssToColor(bgColor, System.Drawing.Color.FromArgb(160, 0, 0, 0));
+
+                                // Draw background (respecting alpha)
+                                using (var brushBg = new SolidBrush(drawBgColor))
+                                {
+                                    var rect = new RectangleF(leftPx, topPx, Math.Max(1, wPx), Math.Max(1, hPx));
+                                    g.FillRectangle(brushBg, rect);
+                                }
+
+                                // Prepare font
+                                string ff = ExtractFirstFontFamily(fontFamily);
+                                FontStyle fs = fontWeight.ToLower().Contains("bold") ? FontStyle.Bold : FontStyle.Regular;
+                                using (var font = new System.Drawing.Font(ff, Math.Max(6f, fontSizePx), fs, GraphicsUnit.Pixel))
+                                using (var brush = new SolidBrush(drawTextColor))
+                                {
+                                    var layoutRect = new RectangleF(leftPx + 2, topPx + 2, Math.Max(1, wPx - 4), Math.Max(1, hPx - 4));
+                                    var sf = new System.Drawing.StringFormat()
+                                    {
+                                        Alignment = System.Drawing.StringAlignment.Center,
+                                        LineAlignment = System.Drawing.StringAlignment.Center,
+                                        Trimming = System.Drawing.StringTrimming.EllipsisCharacter
+                                    };
+                                    g.DrawString(text.Replace("\n", "\r\n"), font, brush, layoutRect, sf);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"[BatchConverter] Error drawing overlay item: {ex.Message}");
+                            }
+                        }
+                    }
+
+                    // Convert composed Bitmap to BitmapImage to return
+                    IntPtr hBmp = resultBmp.GetHbitmap();
+                    try
+                    {
+                        var bmpSource = Imaging.CreateBitmapSourceFromHBitmap(
+                            hBmp, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                        bmpSource.Freeze();
+                        // Dispose temporary bitmap
+                        try { resultBmp.Dispose(); } catch { }
+                        return bmpSource;
+                    }
+                    finally
+                    {
+                        DeleteObject(hBmp);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log($"Error composing overlay: {ex.Message}");
+                    return null;
+                }
             }
             catch (Exception ex)
             {
@@ -780,6 +893,74 @@ namespace UGTLive
             bitmap.Save(ms, ImageFormat.Png);
             return $"data:image/png;base64,{Convert.ToBase64String(ms.ToArray())}";
         }
+
+        private static System.Drawing.Color ParseRgbaCssToColor(string css, System.Drawing.Color fallback)
+        {
+            try
+            {
+                css = css.Trim();
+                if (css.StartsWith("rgba", StringComparison.OrdinalIgnoreCase))
+                {
+                    int start = css.IndexOf('(');
+                    int end = css.IndexOf(')');
+                    if (start >= 0 && end > start)
+                    {
+                        var parts = css.Substring(start + 1, end - start - 1).Split(',');
+                        if (parts.Length >= 4)
+                        {
+                            int r = (int)double.Parse(parts[0], CultureInfo.InvariantCulture);
+                            int g = (int)double.Parse(parts[1], CultureInfo.InvariantCulture);
+                            int b = (int)double.Parse(parts[2], CultureInfo.InvariantCulture);
+                            double a = double.Parse(parts[3], CultureInfo.InvariantCulture);
+                            return System.Drawing.Color.FromArgb((int)Math.Round(a * 255), r, g, b);
+                        }
+                    }
+                }
+                else if (css.StartsWith("rgb", StringComparison.OrdinalIgnoreCase))
+                {
+                    int start = css.IndexOf('(');
+                    int end = css.IndexOf(')');
+                    if (start >= 0 && end > start)
+                    {
+                        var parts = css.Substring(start + 1, end - start - 1).Split(',');
+                        if (parts.Length >= 3)
+                        {
+                            int r = (int)double.Parse(parts[0], CultureInfo.InvariantCulture);
+                            int g = (int)double.Parse(parts[1], CultureInfo.InvariantCulture);
+                            int b = (int)double.Parse(parts[2], CultureInfo.InvariantCulture);
+                            return System.Drawing.Color.FromArgb(255, r, g, b);
+                        }
+                    }
+                }
+                else if (css.StartsWith("#"))
+                {
+                    string hex = css.Substring(1);
+                    if (hex.Length == 6)
+                    {
+                        int r = int.Parse(hex.Substring(0, 2), NumberStyles.HexNumber);
+                        int g = int.Parse(hex.Substring(2, 2), NumberStyles.HexNumber);
+                        int b = int.Parse(hex.Substring(4, 2), NumberStyles.HexNumber);
+                        return System.Drawing.Color.FromArgb(255, r, g, b);
+                    }
+                }
+            }
+            catch { }
+            return fallback;
+        }
+
+        private static string ExtractFirstFontFamily(string fontFamilyCss)
+        {
+            if (string.IsNullOrEmpty(fontFamilyCss)) return "Segoe UI";
+            var parts = fontFamilyCss.Split(',');
+            if (parts.Length == 0) return "Segoe UI";
+            var first = parts[0].Trim();
+            if ((first.StartsWith("\"") && first.EndsWith("\"")) || (first.StartsWith("'") && first.EndsWith("'")))
+                first = first.Substring(1, first.Length - 2);
+            return first;
+        }
+
+        [System.Runtime.InteropServices.DllImport("gdi32.dll")]
+        private static extern bool DeleteObject(IntPtr hObject);
 
         private void saveBitmapSourceAsPng(BitmapSource source, string path)
         {

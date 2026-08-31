@@ -680,8 +680,12 @@ namespace UGTLive
                     $"data-source-text=\"{System.Web.HttpUtility.HtmlAttributeEncode(sourceText)}\" " +
                     $"data-translated-text=\"{System.Web.HttpUtility.HtmlAttributeEncode(translatedText)}\" " +
                     FormattableString.Invariant($"data-original-font-size=\"{fontSize}\"") + fontSizeOverrideAttr +
-                    $" data-orientation=\"{textObj.TextOrientation}\"" +
-                    " style=\"");
+                    $" data-orientation=\"{textObj.TextOrientation}\" " +
+                    FormattableString.Invariant($"data-text-color=\"{textColor}\" ") +
+                    FormattableString.Invariant($"data-bg-color=\"{bgColor}\" ") +
+                    FormattableString.Invariant($"data-font-family=\"{fontFamilyCss}\" ") +
+                    FormattableString.Invariant($"data-font-weight=\"{(isBold ? "bold" : "normal")}\" ") +
+                    "style=\"");
                 html.AppendLine(FormattableString.Invariant($"  left: {left:F1}px;"));
                 html.AppendLine(FormattableString.Invariant($"  top: {top:F1}px;"));
                 html.AppendLine(FormattableString.Invariant($"  width: {width:F1}px;"));
@@ -925,10 +929,38 @@ namespace UGTLive
             html.AppendLine("</div>");
             html.AppendLine("<script>");
             appendFitTextJavaScriptStatic(html);
-            html.AppendLine("  if (window.chrome && window.chrome.webview) {");
-            html.AppendLine("    window.chrome.webview.postMessage('screenshotReady');");
-            html.AppendLine("  }");
+            // Define helper to collect layout and post it back to the host (static/batch path)
+            html.AppendLine("function postOverlayLayout() {");
+            html.AppendLine("  try {");
+            html.AppendLine("    const overlays = document.getElementsByClassName('text-overlay');");
+            html.AppendLine("    const items = []; const img = document.querySelector('.monitor-image');");
+            html.AppendLine("    const imgLeft = img ? img.getBoundingClientRect().left : 0;");
+            html.AppendLine("    const imgTop = img ? img.getBoundingClientRect().top : 0;");
+            html.AppendLine("    for (let o of overlays) {");
+            html.AppendLine("      const r = o.getBoundingClientRect();");
+            html.AppendLine("      const style = window.getComputedStyle(o); const textEl = o.querySelector('.text-content');");
+            html.AppendLine("      const fontSize = parseFloat(window.getComputedStyle(textEl).fontSize || style.fontSize || '12');");
+            html.AppendLine("      items.push({");
+            html.AppendLine("        id: o.id || '',");
+            html.AppendLine("        left: r.left - imgLeft,");
+            html.AppendLine("        top: r.top - imgTop,");
+            html.AppendLine("        width: r.width,");
+            html.AppendLine("        height: r.height,");
+            html.AppendLine("        fontSize: fontSize,");
+            html.AppendLine("        text: o.getAttribute('data-translated-text') || o.getAttribute('data-source-text') || (textEl?textEl.innerText:''),");
+            html.AppendLine("        fontFamily: o.getAttribute('data-font-family') || style.fontFamily || '',");
+            html.AppendLine("        fontWeight: o.getAttribute('data-font-weight') || style.fontWeight || 'normal',");
+            html.AppendLine("        textColor: o.getAttribute('data-text-color') || (style.color || ''),");
+            html.AppendLine("        bgColor: o.getAttribute('data-bg-color') || (style.backgroundColor || ''),");
+            html.AppendLine("        orientation: o.getAttribute('data-orientation') || 'horizontal' ");
+            html.AppendLine("      });");
+            html.AppendLine("    }");
+            html.AppendLine(FormattableString.Invariant("    const payload = { type: 'overlayLayout', cssScale: " + cssScale.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", overlays: items }; "));
+            html.AppendLine("    if (window.chrome && window.chrome.webview) { window.chrome.webview.postMessage(JSON.stringify(payload)); }");
+            html.AppendLine("  } catch(e) { console.error('postOverlayLayout error', e); }");
             html.AppendLine("}");
+            // Trigger after fitting completes (init will call fitAllText); post after a short delay
+            html.AppendLine("setTimeout(postOverlayLayout, 200);");
             appendFitTextInitJavaScriptStatic(html);
             html.AppendLine("</script>");
             html.AppendLine("</body>");
