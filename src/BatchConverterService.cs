@@ -621,40 +621,20 @@ namespace UGTLive
                 // request the WebView compute final overlay layout and return layout metrics.
                 // Then compose the overlay back onto the original bitmap in C# so the final
                 // image retains the source bitmap's original pixel dimensions.
-                var layoutTcs = new TaskCompletionSource<string?>();
-                EventHandler<CoreWebView2WebMessageReceivedEventArgs> handler = null!;
-                handler = (s, e) =>
-                {
-                    try
-                    {
-                        string msg = e.TryGetWebMessageAsString();
-                        if (!string.IsNullOrEmpty(msg))
-                        {
-                            // Expect a JSON payload with type 'overlayLayout'
-                            if (msg.Contains("\"type\":\"overlayLayout\""))
-                            {
-                                _offscreenWebView.CoreWebView2.WebMessageReceived -= handler;
-                                layoutTcs.TrySetResult(msg);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _offscreenWebView.CoreWebView2.WebMessageReceived -= handler;
-                        layoutTcs.TrySetResult(null);
-                        log($"Error processing webview message: {ex.Message}");
-                    }
-                };
-                _offscreenWebView.CoreWebView2.WebMessageReceived += handler;
-                // Ensure postOverlayLayout is invoked even if page load events don't fire as expected:
+                string? layoutJson = null;
+
                 EventHandler<CoreWebView2NavigationCompletedEventArgs>? navHandler = null;
-                navHandler = (s, e) =>
+                navHandler = async (s, e) =>
                 {
                     try
                     {
                         _offscreenWebView.CoreWebView2.NavigationCompleted -= navHandler;
-                        // Ask the page to post layout back to host. Silent try/catch in JS.
-                        _offscreenWebView.CoreWebView2.ExecuteScriptAsync("(function(){ try{ if(window.postOverlayLayout) postOverlayLayout(); else if(window.postOverlayLayout===undefined && window.postOverlayLayout!=null) postOverlayLayout(); } catch(e){} })();");
+                        string script = "(function(){ try { return JSON.stringify(window.postOverlayLayout ? window.postOverlayLayout() : { type: 'overlayLayout', cssScale: 1, overlays: [] }); } catch (e) { return JSON.stringify({ type: 'overlayLayout', cssScale: 1, overlays: [] }); } })()";
+                        string result = await _offscreenWebView.CoreWebView2.ExecuteScriptAsync(script);
+                        if (!string.IsNullOrWhiteSpace(result) && result != "\"\"")
+                        {
+                            layoutJson = System.Text.Json.JsonDocument.Parse(result).RootElement.GetString();
+                        }
                     }
                     catch { }
                 };
@@ -662,28 +642,25 @@ namespace UGTLive
                 _offscreenWebView.CoreWebView2.Navigate(new Uri(tempHtmlPath).AbsoluteUri);
 
                 var timeout = Task.Delay(10000);
-                var finished = await Task.WhenAny(layoutTcs.Task, timeout);
-                string? layoutJson = null;
-                if (finished == timeout)
+                while (string.IsNullOrEmpty(layoutJson))
                 {
-                    _offscreenWebView.CoreWebView2.WebMessageReceived -= handler;
-                    log("Warning: WebView2 render timed out waiting for overlay layout.");
-                }
-                else
-                {
-                    layoutJson = await layoutTcs.Task;
+                    if (await Task.WhenAny(Task.Delay(100), timeout) == timeout)
+                    {
+                        log("Warning: WebView2 render timed out waiting for overlay layout.");
+                        break;
+                    }
+                    if (string.IsNullOrEmpty(layoutJson))
+                        continue;
                 }
 
-                // If we timed out, try forcing the JS again and wait a bit longer
                 if (string.IsNullOrEmpty(layoutJson))
                 {
                     try
                     {
-                        await _offscreenWebView.CoreWebView2.ExecuteScriptAsync("try{ if(window.postOverlayLayout) postOverlayLayout(); }catch(e){};");
-                        var retryTimeout = Task.Delay(5000);
-                        var retryFinished = await Task.WhenAny(layoutTcs.Task, retryTimeout);
-                        if (retryFinished != retryTimeout)
-                            layoutJson = await layoutTcs.Task;
+                        string script = "(function(){ try { return JSON.stringify(window.postOverlayLayout ? window.postOverlayLayout() : { type: 'overlayLayout', cssScale: 1, overlays: [] }); } catch (e) { return JSON.stringify({ type: 'overlayLayout', cssScale: 1, overlays: [] }); } })()";
+                        string result = await _offscreenWebView.CoreWebView2.ExecuteScriptAsync(script);
+                        if (!string.IsNullOrWhiteSpace(result) && result != "\"\"")
+                            layoutJson = System.Text.Json.JsonDocument.Parse(result).RootElement.GetString();
                     }
                     catch { }
                 }
@@ -836,6 +813,7 @@ namespace UGTLive
                 _offscreenWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 _offscreenWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 _offscreenWebView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+                _offscreenWebView.CoreWebView2.Settings.IsWebMessageEnabled = true;
                 _offscreenReady = true;
             }
         }

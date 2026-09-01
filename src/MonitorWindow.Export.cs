@@ -957,7 +957,8 @@ namespace UGTLive
             html.AppendLine("    }");
             html.AppendLine("    const payload = { type: 'overlayLayout', cssScale: " +cssScale.ToString(System.Globalization.CultureInfo.InvariantCulture) +", overlays: items }; ");
             html.AppendLine("    if (window.chrome && window.chrome.webview) { window.chrome.webview.postMessage(JSON.stringify(payload)); }");
-            html.AppendLine("  } catch(e) { console.error('postOverlayLayout error', e); }");
+            html.AppendLine("    return payload;");
+            html.AppendLine("  } catch(e) { console.error('postOverlayLayout error', e); return { type: 'overlayLayout', cssScale: 1, overlays: [] }; }");
             html.AppendLine("}");
             // Trigger after fitting completes (init will call fitAllText); post after a short delay
             html.AppendLine("setTimeout(postOverlayLayout, 200);");
