@@ -701,9 +701,27 @@ namespace UGTLive
                                 double wCss = item.GetProperty("width").GetDouble();
                                 double hCss = item.GetProperty("height").GetDouble();
                                 double fontSizeCss = item.GetProperty("fontSize").GetDouble();
+
+                                // Prefer the authoritative in-memory text object, which owns the translation state.
+                                // The WebView payload can still contain stale source text, so use translated text if present.
+                                TextObject? matchingTextObject = null;
+                                if (!string.IsNullOrEmpty(id))
+                                {
+                                    matchingTextObject = textObjects.FirstOrDefault(t => t.ID == id);
+                                }
+                                if (matchingTextObject == null && !string.IsNullOrEmpty(id) && id.StartsWith("text_", StringComparison.Ordinal) && int.TryParse(id.Substring(5), out int idx) && idx >= 0 && idx < textObjects.Count)
+                                {
+                                    matchingTextObject = textObjects[idx];
+                                }
+
                                 string text = item.TryGetProperty("text", out JsonElement textEl) ? textEl.GetString() ?? "" : "";
-                                if (string.IsNullOrEmpty(text) && item.TryGetProperty("displayText", out JsonElement displayTextEl))
+                                if (matchingTextObject != null && !string.IsNullOrEmpty(matchingTextObject.TextTranslated))
+                                    text = matchingTextObject.TextTranslated;
+                                else if (string.IsNullOrEmpty(text) && item.TryGetProperty("displayText", out JsonElement displayTextEl))
                                     text = displayTextEl.GetString() ?? "";
+                                else if (string.IsNullOrEmpty(text) && matchingTextObject != null && !string.IsNullOrEmpty(matchingTextObject.Text))
+                                    text = matchingTextObject.Text;
+
                                 string fontFamily = item.GetProperty("fontFamily").GetString() ?? "Segoe UI";
                                 string fontWeight = item.GetProperty("fontWeight").GetString() ?? "normal";
                                 string textColor = item.GetProperty("textColor").GetString() ?? "rgba(255,255,255,1)";
