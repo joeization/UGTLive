@@ -701,7 +701,9 @@ namespace UGTLive
                                 double wCss = item.GetProperty("width").GetDouble();
                                 double hCss = item.GetProperty("height").GetDouble();
                                 double fontSizeCss = item.GetProperty("fontSize").GetDouble();
-                                string text = item.GetProperty("text").GetString() ?? "";
+                                string text = item.TryGetProperty("text", out JsonElement textEl) ? textEl.GetString() ?? "" : "";
+                                if (string.IsNullOrEmpty(text) && item.TryGetProperty("displayText", out JsonElement displayTextEl))
+                                    text = displayTextEl.GetString() ?? "";
                                 string fontFamily = item.GetProperty("fontFamily").GetString() ?? "Segoe UI";
                                 string fontWeight = item.GetProperty("fontWeight").GetString() ?? "normal";
                                 string textColor = item.GetProperty("textColor").GetString() ?? "rgba(255,255,255,1)";

@@ -940,6 +940,7 @@ namespace UGTLive
             html.AppendLine("      const r = o.getBoundingClientRect();");
             html.AppendLine("      const style = window.getComputedStyle(o); const textEl = o.querySelector('.text-content');");
             html.AppendLine("      const fontSize = parseFloat(window.getComputedStyle(textEl).fontSize || style.fontSize || '12');");
+            html.AppendLine("      const displayText = (textEl && textEl.textContent) ? textEl.textContent : (o.getAttribute('data-display-text') || o.getAttribute('data-translated-text') || o.getAttribute('data-source-text') || '');");
             html.AppendLine("      items.push({");
             html.AppendLine("        id: o.id || '',");
             html.AppendLine("        left: r.left - imgLeft,");
@@ -947,7 +948,8 @@ namespace UGTLive
             html.AppendLine("        width: r.width,");
             html.AppendLine("        height: r.height,");
             html.AppendLine("        fontSize: fontSize,");
-            html.AppendLine("        text: o.getAttribute('data-translated-text') || o.getAttribute('data-source-text') || (textEl?textEl.innerText:''),");
+            html.AppendLine("        text: displayText,");
+            html.AppendLine("        displayText: displayText,");
             html.AppendLine("        fontFamily: o.getAttribute('data-font-family') || style.fontFamily || '',");
             html.AppendLine("        fontWeight: o.getAttribute('data-font-weight') || style.fontWeight || 'normal',");
             html.AppendLine("        textColor: o.getAttribute('data-text-color') || (style.color || ''),");
@@ -1044,6 +1046,7 @@ namespace UGTLive
                 html.AppendLine($"<div class=\"text-overlay\" id=\"overlay-{textObj.ID}\" " +
                     $"data-source-text=\"{System.Web.HttpUtility.HtmlAttributeEncode(sourceText)}\" " +
                     $"data-translated-text=\"{System.Web.HttpUtility.HtmlAttributeEncode(translatedText)}\" " +
+                    $"data-display-text=\"{System.Web.HttpUtility.HtmlAttributeEncode(displayText)}\" " +
                     FormattableString.Invariant($"data-original-font-size=\"{fontSize}\"") + fontSizeOverrideAttr +
                     $" data-orientation=\"{textObj.TextOrientation}\"" +
                     " style=\"");
